@@ -968,6 +968,20 @@
 
             if (!gameRunning || gamePaused) {
                 if (gamePaused && gameRunning) {
+                    const s = getSettings();
+                    const terrain = TERRAIN_COLORS[s.terrainType];
+                    ctx.fillStyle = terrain.bg;
+                    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                    ctx.strokeStyle = terrain.grid; ctx.lineWidth = 1;
+                    for (let i = 0; i <= CANVAS_SIZE; i += GRID_STEP) {
+                        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, CANVAS_SIZE); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(CANVAS_SIZE, i); ctx.stroke();
+                    }
+                    drawWalls(); drawPowerups(); drawBullets();
+                    for (const enemy of enemies) enemy.draw();
+                    if (boss && boss.alive) boss.draw();
+                    if (player.alive) player.draw();
+                    drawBossUI(); drawPowerupEffects();
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
                     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
                     ctx.fillStyle = '#ffffff';
@@ -1062,10 +1076,10 @@
             const btnStart = document.getElementById('btnStart');
             const btnPause = document.getElementById('btnPause');
             if (gameRunning && !gamePaused) {
-                btnStart.disabled = false; btnStart.textContent = '▶ 重新开始';
+                btnStart.disabled = false; btnStart.textContent = '▶ 开始';
                 btnPause.disabled = false; btnPause.textContent = '⏸ 暂停';
             } else if (gameRunning && gamePaused) {
-                btnStart.disabled = false; btnStart.textContent = '▶ 重新开始';
+                btnStart.disabled = false; btnStart.textContent = '▶ 开始';
                 btnPause.disabled = false; btnPause.textContent = '▶ 继续';
             } else {
                 btnStart.disabled = false; btnStart.textContent = '▶ 开始';
