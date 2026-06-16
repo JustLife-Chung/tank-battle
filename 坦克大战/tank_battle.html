@@ -44,15 +44,19 @@
         .powerup-legend { margin-top: 10px; padding-top: 10px; border-top: 1px solid #0f3460; }
         .powerup-legend h3 { color: #ff0000; margin-bottom: 8px; font-size: 14px; }
         .powerup-legend p { color: #aaa; font-size: 11px; margin: 3px 0; }
-        .game-over, .level-complete, .start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: none; justify-content: center; align-items: center; z-index: 100; }
-        .game-over-content, .level-complete-content, .start-screen-content { background: rgba(22, 33, 62, 0.98); padding: 40px 50px; border-radius: 15px; text-align: center; border: 3px solid #ff0000; }
+        .start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; justify-content: center; align-items: center; z-index: 100; flex-direction: column; }
+        .start-screen h1 { color: #ff0000; font-size: 80px; text-shadow: 0 0 30px rgba(255, 0, 0, 0.6), 0 0 60px rgba(255, 0, 0, 0.3); margin-bottom: 10px; letter-spacing: 12px; }
+        .start-screen p { color: #ccc; font-size: 20px; margin: 8px 0; }
+        .start-screen .input-row { margin: 20px 0; }
+        .start-screen .input-row label { color: #fff; font-size: 16px; }
+        .start-screen .input-row input { width: 80px; padding: 8px; font-size: 16px; border-radius: 5px; border: 2px solid #0066ff; text-align: center; margin-left: 10px; background: #16213e; color: #fff; }
+        .game-over, .level-complete { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .game-over-content, .level-complete-content { background: rgba(22, 33, 62, 0.98); padding: 40px 50px; border-radius: 15px; text-align: center; border: 3px solid #ff0000; }
         .level-complete-content { border-color: #00ff88; }
-        .start-screen-content { border-color: #ff0000; }
-        .game-over h1, .level-complete h1, .start-screen h1 { font-size: 42px; margin-bottom: 20px; }
+        .game-over h1, .level-complete h1 { font-size: 42px; margin-bottom: 20px; }
         .game-over h1 { color: #ff0000; }
         .level-complete h1 { color: #00ff88; }
-        .start-screen h1 { color: #ff0000; text-shadow: 0 0 20px rgba(255, 0, 0, 0.5); }
-        .game-over p, .level-complete p, .start-screen p { color: #fff; font-size: 18px; margin: 10px 0; }
+        .game-over p, .level-complete p { color: #fff; font-size: 18px; margin: 10px 0; }
         .btn { background: #ff0000; color: #fff; border: none; padding: 12px 35px; font-size: 18px; border-radius: 8px; cursor: pointer; margin-top: 20px; font-weight: bold; transition: all 0.3s; }
         .btn:hover { background: #ff6666; transform: scale(1.05); }
         .btn-blue { background: #0066ff; }
@@ -114,12 +118,10 @@
     </div>
 
     <div class="start-screen" id="startScreen">
-        <div class="start-screen-content">
-            <h1>坦克大战</h1>
-            <p>消灭所有敌人坦克取得胜利</p>
-            <div style="margin: 15px 0;"><label style="color:#fff; font-size:16px;">敌人数量:</label><input type="number" id="enemyCountInput" value="5" min="1" max="20" style="width:80px; padding:8px; font-size:16px; border-radius:5px; border:2px solid #0066ff; text-align:center; margin-left:10px;"></div>
-            <button class="btn btn-blue" onclick="startGame()">开始游戏</button>
-        </div>
+        <h1>坦克大战</h1>
+        <p>消灭所有敌人坦克取得胜利</p>
+        <div class="input-row"><label>敌人数量:</label><input type="number" id="enemyCountInput" value="5" min="1" max="20"></div>
+        <button class="btn btn-blue" onclick="startGame()">开始游戏</button>
     </div>
     <div class="game-over" id="gameOver"><div class="game-over-content"><h1>游戏结束</h1><p>最终得分: <span id="finalScore">0</span></p><button class="btn" onclick="restartGame()">重新开始</button></div></div>
     <div class="level-complete" id="levelComplete"><div class="level-complete-content"><h1>胜利!</h1><p>所有敌人已被消灭</p><p>得分: <span id="levelScore">0</span></p><button class="btn" onclick="nextLevel()">下一关</button></div></div>
