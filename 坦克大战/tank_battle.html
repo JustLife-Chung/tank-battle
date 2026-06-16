@@ -1007,13 +1007,15 @@
 
             if (!gameRunning || gamePaused) {
                 if (gamePaused && gameRunning) {
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
                     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-                    ctx.fillStyle = '#fff';
+                    ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 48px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('⏸ 暂停', CANVAS_SIZE/2, CANVAS_SIZE/2);
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('暂停', CANVAS_SIZE/2, CANVAS_SIZE/2);
                     ctx.textAlign = 'left';
+                    ctx.textBaseline = 'alphabetic';
                 }
                 return;
             }
@@ -1124,6 +1126,7 @@
                 btnPause.textContent = gamePaused ? '▶ 继续' : '⏸ 暂停';
             } else {
                 btnStart.disabled = false;
+                btnStart.textContent = '▶ 开始';
                 btnPause.disabled = true;
                 btnPause.textContent = '⏸ 暂停';
             }
@@ -1169,7 +1172,9 @@
                 gamePaused = !gamePaused;
                 updateButtons();
             }
-            if (e.key === ' ') e.preventDefault();
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault();
+            }
         });
 
         document.addEventListener('keyup', (e) => { keys[e.key] = false; });
