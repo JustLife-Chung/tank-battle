@@ -17,7 +17,7 @@
             position: fixed; left: 0; top: 0; bottom: 0;
             background: rgba(22, 33, 62, 0.95); padding: 15px;
             border-right: 2px solid #0f3460; width: 220px;
-            overflow-y: auto; z-index: 10;
+            overflow-y: auto; z-index: 200;
         }
         .settings-panel::-webkit-scrollbar { display: none; }
         .settings-panel { -ms-overflow-style: none; scrollbar-width: none; }
@@ -48,7 +48,7 @@
             position: fixed; right: 0; top: 0; bottom: 0;
             background: rgba(22, 33, 62, 0.95); padding: 15px;
             border-left: 2px solid #0f3460; width: 200px;
-            overflow-y: auto; z-index: 10;
+            overflow-y: auto; z-index: 200;
         }
         .game-info::-webkit-scrollbar { display: none; }
         .game-info { -ms-overflow-style: none; scrollbar-width: none; }
@@ -441,7 +441,10 @@
             };
         }
 
-        function getSettings() { return gameSettings || readSettings(); }
+        function getSettings() {
+            if (!gameSettings) gameSettings = readSettings();
+            return gameSettings;
+        }
 
         function applyMapSettings() {
             const s = getSettings();
@@ -1079,6 +1082,7 @@
 
         function nextLevel() {
             document.getElementById('levelComplete').style.display = 'none';
+            gameSettings = readSettings();
             level++; enemyCount += 2;
             gameRunning = true; gamePaused = false;
             initGame();
