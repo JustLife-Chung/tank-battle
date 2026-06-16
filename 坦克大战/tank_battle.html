@@ -42,7 +42,10 @@
         .setting-row select { width: 80px; text-align: left; padding: 3px; }
         .setting-row input:focus, .setting-row select:focus { outline: none; border-color: #0099ff; }
 
-        #gameCanvas { border: 3px solid #ff0000; background: #16213e; box-shadow: 0 0 30px rgba(255, 0, 0, 0.3); }
+        #gameCanvas {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            border: 3px solid #ff0000; background: #16213e; box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+        }
 
         .game-info {
             position: fixed; right: 0; top: 0; bottom: 0;
@@ -127,14 +130,6 @@
         <h2>⚙️ 游戏设置</h2>
 
         <h3>🗺️ 地图选项</h3>
-        <div class="setting-row">
-            <label>地图大小</label>
-            <select id="mapSize">
-                <option value="small">小 (500×500)</option>
-                <option value="medium" selected>中 (600×600)</option>
-                <option value="large">大 (750×750)</option>
-            </select>
-        </div>
         <div class="setting-row">
             <label>地形类型</label>
             <select id="terrainType">
@@ -286,11 +281,9 @@
         settingsPanel.addEventListener('wheel', (e) => { e.preventDefault(); settingsPanel.scrollTop += e.deltaY; }, { passive: false });
         gameInfoPanel.addEventListener('wheel', (e) => { e.preventDefault(); gameInfoPanel.scrollTop += e.deltaY; }, { passive: false });
 
-        const MAP_CONFIGS = {
-            small:  { size: 500, grid: 42 },
-            medium: { size: 600, grid: 42 },
-            large:  { size: 750, grid: 42 }
-        };
+        const PANEL_LEFT = 220;
+        const PANEL_RIGHT = 200;
+        const PANEL_BORDER = 6;
 
         const TERRAIN_COLORS = {
             plains: { bg: '#16213e', grid: '#1a3a5c', wallDmg: [0, 120, 0] },
@@ -435,7 +428,6 @@
                 enemyBulletSpeed: parseInt(document.getElementById('enemyBulletSpeed').value) || 3,
                 wallHP: parseInt(document.getElementById('wallHP').value) || 2,
                 playerDamage: parseInt(document.getElementById('playerDamage').value) || 1,
-                mapSize: document.getElementById('mapSize').value,
                 terrainType: document.getElementById('terrainType').value,
                 obstacleDensity: document.getElementById('obstacleDensity').value
             };
@@ -447,10 +439,11 @@
         }
 
         function applyMapSettings() {
-            const s = getSettings();
-            const mapCfg = MAP_CONFIGS[s.mapSize];
-            CANVAS_SIZE = mapCfg.size;
-            GRID_STEP = mapCfg.grid;
+            const availW = window.innerWidth - PANEL_LEFT - PANEL_RIGHT - PANEL_BORDER;
+            const availH = window.innerHeight - 20;
+            CANVAS_SIZE = Math.min(availW, availH);
+            CANVAS_SIZE = Math.max(CANVAS_SIZE, 400);
+            GRID_STEP = Math.floor(CANVAS_SIZE / 14);
             canvas.width = CANVAS_SIZE;
             canvas.height = CANVAS_SIZE;
         }
@@ -1126,6 +1119,13 @@
         });
 
         document.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+        window.addEventListener('resize', () => {
+            applyMapSettings();
+            if (gameRunning) {
+                initGame();
+            }
+        });
 
         updateButtons();
         gameLoop();
