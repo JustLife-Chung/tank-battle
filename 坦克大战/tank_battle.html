@@ -13,14 +13,14 @@
             font-family: 'Microsoft YaHei', Arial, sans-serif; overflow: hidden;
         }
 
-        .game-wrapper { display: flex; gap: 15px; align-items: flex-start; }
-
         .settings-panel {
-            background: rgba(22, 33, 62, 0.95); padding: 15px; border-radius: 10px;
-            border: 2px solid #0f3460; width: 220px; max-height: 600px; overflow-y: auto;
+            position: fixed; left: 0; top: 0; bottom: 0;
+            background: rgba(22, 33, 62, 0.95); padding: 15px;
+            border-right: 2px solid #0f3460; width: 220px;
+            overflow-y: auto; z-index: 10;
         }
-        .settings-panel::-webkit-scrollbar { width: 4px; }
-        .settings-panel::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 2px; }
+        .settings-panel::-webkit-scrollbar { display: none; }
+        .settings-panel { -ms-overflow-style: none; scrollbar-width: none; }
 
         .settings-panel h2 {
             color: #ff0000; text-align: center; font-size: 20px;
@@ -45,9 +45,13 @@
         #gameCanvas { border: 3px solid #ff0000; background: #16213e; box-shadow: 0 0 30px rgba(255, 0, 0, 0.3); }
 
         .game-info {
-            background: rgba(22, 33, 62, 0.95); padding: 15px; border-radius: 10px;
-            border: 2px solid #0f3460; width: 200px;
+            position: fixed; right: 0; top: 0; bottom: 0;
+            background: rgba(22, 33, 62, 0.95); padding: 15px;
+            border-left: 2px solid #0f3460; width: 200px;
+            overflow-y: auto; z-index: 10;
         }
+        .game-info::-webkit-scrollbar { display: none; }
+        .game-info { -ms-overflow-style: none; scrollbar-width: none; }
         .game-info h2 { color: #ff0000; margin-bottom: 10px; text-align: center; font-size: 20px; }
         .info-item { color: #fff; margin: 6px 0; font-size: 14px; }
         .info-item span { color: #0066ff; font-weight: bold; }
@@ -89,7 +93,7 @@
         .btn-blue:hover { background: #0099ff; }
 
         .sound-toggle {
-            position: fixed; top: 10px; right: 10px;
+            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
             background: rgba(22, 33, 62, 0.9); border: 2px solid #0066ff;
             border-radius: 8px; padding: 8px 15px; color: #fff; cursor: pointer;
             font-size: 14px; z-index: 50;
@@ -119,124 +123,122 @@
 <body>
     <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊 音效开启</button>
 
-    <div class="game-wrapper">
-        <div class="settings-panel">
-            <h2>⚙️ 游戏设置</h2>
+    <div class="settings-panel" id="settingsPanel">
+        <h2>⚙️ 游戏设置</h2>
 
-            <h3>🗺️ 地图选项</h3>
-            <div class="setting-row">
-                <label>地图大小</label>
-                <select id="mapSize">
-                    <option value="small">小 (500×500)</option>
-                    <option value="medium" selected>中 (600×600)</option>
-                    <option value="large">大 (750×750)</option>
-                </select>
-            </div>
-            <div class="setting-row">
-                <label>地形类型</label>
-                <select id="terrainType">
-                    <option value="plains" selected>平原</option>
-                    <option value="desert">沙漠</option>
-                    <option value="urban">城市</option>
-                    <option value="forest">森林</option>
-                </select>
-            </div>
-            <div class="setting-row">
-                <label>障碍物密度</label>
-                <select id="obstacleDensity">
-                    <option value="sparse">稀疏</option>
-                    <option value="normal" selected>适中</option>
-                    <option value="dense">密集</option>
-                </select>
-            </div>
-
-            <h3>🎮 玩家设置</h3>
-            <div class="setting-row">
-                <label>生命值</label>
-                <input type="number" id="playerHP" value="2" min="1" max="10">
-            </div>
-            <div class="setting-row">
-                <label>移动速度</label>
-                <input type="number" id="playerSpeed" value="2.5" min="0.5" max="10" step="0.5">
-            </div>
-            <div class="setting-row">
-                <label>射击冷却(ms)</label>
-                <input type="number" id="playerCooldown" value="600" min="100" max="3000" step="100">
-            </div>
-
-            <h3>🤖 敌人设置</h3>
-            <div class="setting-row">
-                <label>生命值</label>
-                <input type="number" id="enemyHP" value="3" min="1" max="10">
-            </div>
-            <div class="setting-row">
-                <label>移动速度</label>
-                <input type="number" id="enemySpeed" value="1" min="0.5" max="10" step="0.5">
-            </div>
-            <div class="setting-row">
-                <label>射击冷却(ms)</label>
-                <input type="number" id="enemyCooldown" value="2000" min="500" max="5000" step="100">
-            </div>
-
-            <h3>💥 炮弹设置</h3>
-            <div class="setting-row">
-                <label>玩家炮弹速度</label>
-                <input type="number" id="playerBulletSpeed" value="4" min="1" max="15">
-            </div>
-            <div class="setting-row">
-                <label>敌人炮弹速度</label>
-                <input type="number" id="enemyBulletSpeed" value="3" min="1" max="15">
-            </div>
-            <div class="setting-row">
-                <label>炮弹伤害</label>
-                <input type="number" id="playerDamage" value="1" min="1" max="10">
-            </div>
-
-            <h3>🧱 障碍物设置</h3>
-            <div class="setting-row">
-                <label>障碍物HP</label>
-                <input type="number" id="wallHP" value="2" min="1" max="10">
-            </div>
-
-            <h3>🎮 游戏控制</h3>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="ctrl-btn start-btn-ctrl" id="btnStart" onclick="startGame()">▶ 开始</button>
-                <button class="ctrl-btn pause-btn-ctrl" id="btnPause" onclick="togglePause()" disabled>⏸ 暂停</button>
-            </div>
+        <h3>🗺️ 地图选项</h3>
+        <div class="setting-row">
+            <label>地图大小</label>
+            <select id="mapSize">
+                <option value="small">小 (500×500)</option>
+                <option value="medium" selected>中 (600×600)</option>
+                <option value="large">大 (750×750)</option>
+            </select>
+        </div>
+        <div class="setting-row">
+            <label>地形类型</label>
+            <select id="terrainType">
+                <option value="plains" selected>平原</option>
+                <option value="desert">沙漠</option>
+                <option value="urban">城市</option>
+                <option value="forest">森林</option>
+            </select>
+        </div>
+        <div class="setting-row">
+            <label>障碍物密度</label>
+            <select id="obstacleDensity">
+                <option value="sparse">稀疏</option>
+                <option value="normal" selected>适中</option>
+                <option value="dense">密集</option>
+            </select>
         </div>
 
-        <canvas id="gameCanvas" width="600" height="600"></canvas>
+        <h3>🎮 玩家设置</h3>
+        <div class="setting-row">
+            <label>生命值</label>
+            <input type="number" id="playerHP" value="2" min="1" max="10">
+        </div>
+        <div class="setting-row">
+            <label>移动速度</label>
+            <input type="number" id="playerSpeed" value="2.5" min="0.5" max="10" step="0.5">
+        </div>
+        <div class="setting-row">
+            <label>射击冷却(ms)</label>
+            <input type="number" id="playerCooldown" value="600" min="100" max="3000" step="100">
+        </div>
 
-        <div class="game-info">
-            <h2>坦克大战</h2>
-            <div class="info-item">得分: <span id="score">0</span></div>
-            <div class="info-item">生命: <span id="lives">2</span></div>
-            <div class="info-item">关卡: <span id="level">1</span></div>
-            <div class="info-item">敌人: <span id="enemies">5</span></div>
-            <div class="info-item">Boss: <span id="bossHP">-</span></div>
+        <h3>🤖 敌人设置</h3>
+        <div class="setting-row">
+            <label>生命值</label>
+            <input type="number" id="enemyHP" value="3" min="1" max="10">
+        </div>
+        <div class="setting-row">
+            <label>移动速度</label>
+            <input type="number" id="enemySpeed" value="1" min="0.5" max="10" step="0.5">
+        </div>
+        <div class="setting-row">
+            <label>射击冷却(ms)</label>
+            <input type="number" id="enemyCooldown" value="2000" min="500" max="5000" step="100">
+        </div>
 
-            <div class="controls">
-                <h3>操作说明</h3>
-                <p>↑↓←→: 移动坦克</p>
-                <p>空格: 发射子弹</p>
-                <p>P: 暂停游戏</p>
-            </div>
-            <div class="controls">
-                <h3>游戏规则</h3>
-                <p>🔴 红色 = 玩家</p>
-                <p>🔵 蓝色 = 敌人</p>
-                <p>🟣 紫色 = Boss</p>
-                <p>⬛ 黑色 = 不可摧毁</p>
-                <p>🟩 绿色 = 可被摧毁</p>
-            </div>
-            <div class="powerup-legend">
-                <h3>🎁 道具效果</h3>
-                <p>⚡ 黄色 = 移速提升</p>
-                <p>🔥 橙色 = 射速提升</p>
-                <p>💚 绿色 = 血量恢复</p>
-                <p>💎 蓝色 = 伤害增强</p>
-                <p>⭐ 金色 = 散弹射击</p>
-            </div>
+        <h3>💥 炮弹设置</h3>
+        <div class="setting-row">
+            <label>玩家炮弹速度</label>
+            <input type="number" id="playerBulletSpeed" value="4" min="1" max="15">
+        </div>
+        <div class="setting-row">
+            <label>敌人炮弹速度</label>
+            <input type="number" id="enemyBulletSpeed" value="3" min="1" max="15">
+        </div>
+        <div class="setting-row">
+            <label>炮弹伤害</label>
+            <input type="number" id="playerDamage" value="1" min="1" max="10">
+        </div>
+
+        <h3>🧱 障碍物设置</h3>
+        <div class="setting-row">
+            <label>障碍物HP</label>
+            <input type="number" id="wallHP" value="2" min="1" max="10">
+        </div>
+
+        <h3>🎮 游戏控制</h3>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button class="ctrl-btn start-btn-ctrl" id="btnStart" onclick="startGame()">▶ 开始</button>
+            <button class="ctrl-btn pause-btn-ctrl" id="btnPause" onclick="togglePause()" disabled>⏸ 暂停</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+
+    <div class="game-info" id="gameInfo">
+        <h2>坦克大战</h2>
+        <div class="info-item">得分: <span id="score">0</span></div>
+        <div class="info-item">生命: <span id="lives">2</span></div>
+        <div class="info-item">关卡: <span id="level">1</span></div>
+        <div class="info-item">敌人: <span id="enemies">5</span></div>
+        <div class="info-item">Boss: <span id="bossHP">-</span></div>
+
+        <div class="controls">
+            <h3>操作说明</h3>
+            <p>↑↓←→: 移动坦克</p>
+            <p>空格: 发射子弹</p>
+            <p>P: 暂停游戏</p>
+        </div>
+        <div class="controls">
+            <h3>游戏规则</h3>
+            <p>🔴 红色 = 玩家</p>
+            <p>🔵 蓝色 = 敌人</p>
+            <p>🟣 紫色 = Boss</p>
+            <p>⬛ 黑色 = 不可摧毁</p>
+            <p>🟩 绿色 = 可被摧毁</p>
+        </div>
+        <div class="powerup-legend">
+            <h3>🎁 道具效果</h3>
+            <p>⚡ 黄色 = 移速提升</p>
+            <p>🔥 橙色 = 射速提升</p>
+            <p>💚 绿色 = 血量恢复</p>
+            <p>💎 蓝色 = 伤害增强</p>
+            <p>⭐ 金色 = 散弹射击</p>
         </div>
     </div>
 
@@ -278,6 +280,11 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const gameInfoPanel = document.getElementById('gameInfo');
+
+        settingsPanel.addEventListener('wheel', (e) => { e.preventDefault(); settingsPanel.scrollTop += e.deltaY; }, { passive: false });
+        gameInfoPanel.addEventListener('wheel', (e) => { e.preventDefault(); gameInfoPanel.scrollTop += e.deltaY; }, { passive: false });
 
         const MAP_CONFIGS = {
             small:  { size: 500, grid: 42 },
@@ -293,10 +300,10 @@
         };
 
         const POWERUP_TYPES = [
-            { id: 'speed',   name: '移速提升', color: '#ffff00', symbol: '⚡', duration: 8000 },
+            { id: 'speed', name: '移速提升', color: '#ffff00', symbol: '⚡', duration: 8000 },
             { id: 'firerate', name: '射速提升', color: '#ff8800', symbol: '🔥', duration: 8000 },
-            { id: 'heal',    name: '血量恢复', color: '#00ff88', symbol: '💚', duration: 0 },
-            { id: 'damage',  name: '伤害增强', color: '#00aaff', symbol: '💎', duration: 10000 },
+            { id: 'heal', name: '血量恢复', color: '#00ff88', symbol: '💚', duration: 0 },
+            { id: 'damage', name: '伤害增强', color: '#00aaff', symbol: '💎', duration: 10000 },
             { id: 'multishot', name: '散弹射击', color: '#ffdd00', symbol: '⭐', duration: 8000 }
         ];
 
@@ -324,6 +331,7 @@
         let soundEnabled = true;
         let audioCtx = null;
         let lastPowerupSpawn = 0;
+        let gameSettings = null;
 
         function getAudioContext() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -415,7 +423,7 @@
             document.getElementById('soundToggle').textContent = soundEnabled ? '🔊 音效开启' : '🔇 音效关闭';
         }
 
-        function getSettings() {
+        function readSettings() {
             return {
                 playerHP: parseInt(document.getElementById('playerHP').value) || 2,
                 playerSpeed: parseFloat(document.getElementById('playerSpeed').value) || 2.5,
@@ -433,9 +441,11 @@
             };
         }
 
+        function getSettings() { return gameSettings || readSettings(); }
+
         function applyMapSettings() {
-            const settings = getSettings();
-            const mapCfg = MAP_CONFIGS[settings.mapSize];
+            const s = getSettings();
+            const mapCfg = MAP_CONFIGS[s.mapSize];
             CANVAS_SIZE = mapCfg.size;
             GRID_STEP = mapCfg.grid;
             canvas.width = CANVAS_SIZE;
@@ -444,7 +454,7 @@
 
         class Tank {
             constructor(x, y, isPlayer, isBoss) {
-                const settings = getSettings();
+                const s = getSettings();
                 this.x = x;
                 this.y = y;
                 this.isPlayer = isPlayer;
@@ -453,24 +463,21 @@
                 this.height = isBoss ? TANK_SIZE * 1.8 : TANK_SIZE;
                 this.color = isPlayer ? '#ff0000' : (isBoss ? '#9900ff' : '#0066ff');
                 this.direction = 'up';
-                this.speed = isPlayer ? settings.playerSpeed : (isBoss ? settings.enemySpeed * 1.5 : settings.enemySpeed);
-                this.baseHealth = isPlayer ? settings.playerHP : (isBoss ? Math.floor(BOSS_BASE_HP * Math.pow(BOSS_SCALE_PER_LEVEL, level - 1)) : settings.enemyHP);
+                this.speed = isPlayer ? s.playerSpeed : (isBoss ? s.enemySpeed * 1.5 : s.enemySpeed);
+                this.baseHealth = isPlayer ? s.playerHP : (isBoss ? Math.floor(BOSS_BASE_HP * Math.pow(BOSS_SCALE_PER_LEVEL, level - 1)) : s.enemyHP);
                 this.health = this.baseHealth;
                 this.maxHealth = this.health;
                 this.lastShot = 0;
-                this.shootCooldown = isPlayer ? settings.playerCooldown : (isBoss ? Math.floor(settings.enemyCooldown * 0.4) : settings.enemyCooldown);
-                this.bulletSpeed = isPlayer ? settings.playerBulletSpeed : (isBoss ? Math.floor(settings.enemyBulletSpeed * 1.8) : settings.enemyBulletSpeed);
-                this.bulletDamage = isPlayer ? settings.playerDamage : (isBoss ? Math.floor(settings.playerDamage * 2) : 1);
+                this.shootCooldown = isPlayer ? s.playerCooldown : (isBoss ? Math.floor(s.enemyCooldown * 0.4) : s.enemyCooldown);
+                this.bulletSpeed = isPlayer ? s.playerBulletSpeed : (isBoss ? Math.floor(s.enemyBulletSpeed * 1.8) : s.enemyBulletSpeed);
+                this.bulletDamage = isPlayer ? s.playerDamage : (isBoss ? Math.floor(s.playerDamage * 2) : 1);
                 this.invincible = false;
                 this.invincibleTimer = 0;
                 this.alive = true;
-                this.moveTimer = 0;
-                this.moveInterval = isBoss ? 30 : (isPlayer ? 0 : 60);
             }
 
             draw() {
                 if (!this.alive) return;
-
                 if (this.invincible) ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 100) * 0.3;
 
                 if (this.isBoss) {
@@ -483,9 +490,7 @@
 
                 ctx.fillStyle = '#111';
                 const inner = this.isBoss ? 22 : 16;
-                const innerX = this.x + (this.width - inner) / 2;
-                const innerY = this.y + (this.height - inner) / 2;
-                ctx.fillRect(innerX, innerY, inner, inner);
+                ctx.fillRect(this.x + (this.width - inner) / 2, this.y + (this.height - inner) / 2, inner, inner);
 
                 ctx.fillStyle = this.color;
                 const barrelW = this.isBoss ? 12 : 8;
@@ -608,51 +613,37 @@
 
         function spawnBoss() {
             const bSize = TANK_SIZE * 1.8;
-            const x = (CANVAS_SIZE - bSize) / 2;
-            const y = 20;
-            boss = new Tank(x, y, false, true);
+            boss = new Tank((CANVAS_SIZE - bSize) / 2, 20, false, true);
             bossActive = true;
         }
 
         function drawBossUI() {
             if (!boss || !boss.alive) return;
-            const barWidth = 200;
-            const barHeight = 10;
-            const bx = (CANVAS_SIZE - barWidth) / 2;
-            const by = CANVAS_SIZE - 30;
+            const barWidth = 200, barHeight = 10;
+            const bx = (CANVAS_SIZE - barWidth) / 2, by = CANVAS_SIZE - 30;
             ctx.fillStyle = '#333';
             ctx.fillRect(bx, by, barWidth, barHeight);
             const hpRatio = boss.health / boss.maxHealth;
             ctx.fillStyle = hpRatio > 0.5 ? '#ff00ff' : (hpRatio > 0.25 ? '#ff8800' : '#ff0000');
             ctx.fillRect(bx, by, barWidth * hpRatio, barHeight);
-            ctx.strokeStyle = '#ff00ff';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 1;
             ctx.strokeRect(bx, by, barWidth, barHeight);
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 11px Arial';
-            ctx.textAlign = 'center';
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
             ctx.fillText(`BOSS: ${boss.health}/${boss.maxHealth}`, CANVAS_SIZE / 2, by - 4);
             ctx.textAlign = 'left';
         }
 
         function bossAI() {
             if (!boss || !boss.alive) return;
-
-            const dx = player.x - boss.x;
-            const dy = player.y - boss.y;
+            const dx = player.x - boss.x, dy = player.y - boss.y;
             if (Math.random() < 0.05) {
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    boss.direction = dx > 0 ? 'right' : 'left';
-                } else {
-                    boss.direction = dy > 0 ? 'down' : 'up';
-                }
+                boss.direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
             }
-
             boss.move(boss.direction);
             if (Math.random() < 0.06) boss.shoot();
             if (Math.random() < 0.025) {
                 const dirs = ['up', 'down', 'left', 'right'];
-                boss.direction = dirs[Math.floor(Math.random() * dirs.length)];
+                boss.direction = dirs[Math.floor(Math.random() * 4)];
             }
         }
 
@@ -661,7 +652,6 @@
             const now = Date.now();
             if (now - lastPowerupSpawn < 5000) return;
             lastPowerupSpawn = now;
-
             const type = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
             let x, y, attempts = 0;
             do {
@@ -669,7 +659,6 @@
                 y = Math.random() * (CANVAS_SIZE - 30);
                 attempts++;
             } while (attempts < 50 && walls.some(w => rectCollision({ x, y, width: 24, height: 24 }, w)));
-
             powerups.push({ x, y, width: 24, height: 24, type, spawnTime: now });
         }
 
@@ -678,35 +667,27 @@
             for (let i = powerups.length - 1; i >= 0; i--) {
                 const p = powerups[i];
                 if (now - p.spawnTime > 12000) { powerups.splice(i, 1); continue; }
-
                 const pulse = Math.sin(now / 200) * 3;
                 ctx.fillStyle = 'rgba(0,0,0,0.4)';
                 ctx.beginPath();
                 ctx.arc(p.x + p.width/2, p.y + p.height/2, 14 + pulse, 0, Math.PI * 2);
                 ctx.fill();
-
                 ctx.fillStyle = p.type.color;
                 ctx.fillRect(p.x, p.y, p.width, p.height);
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
                 ctx.strokeRect(p.x, p.y, p.width, p.height);
-
-                ctx.font = 'bold 14px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
+                ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#000';
                 ctx.fillText(p.type.symbol, p.x + p.width/2, p.y + p.height/2);
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'alphabetic';
+                ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
             }
         }
 
         function checkPowerupCollision() {
             if (!player.alive) return;
             for (let i = powerups.length - 1; i >= 0; i--) {
-                const p = powerups[i];
-                if (rectCollision({ x: player.x, y: player.y, width: player.width, height: player.height }, p)) {
-                    applyPowerup(p.type);
+                if (rectCollision({ x: player.x, y: player.y, width: player.width, height: player.height }, powerups[i])) {
+                    applyPowerup(powerups[i].type);
                     powerups.splice(i, 1);
                     playSound('powerup');
                 }
@@ -714,6 +695,7 @@
         }
 
         function applyPowerup(type) {
+            const s = getSettings();
             switch(type.id) {
                 case 'speed':
                     player.speed += 0.8;
@@ -742,23 +724,19 @@
             updateUI();
         }
 
-        let powerupMsgTimer = 0;
-        let powerupMsgText = '';
-        function showPowerupMessage(text) {
-            powerupMsgText = text;
-            powerupMsgTimer = Date.now() + 2000;
-        }
+        let powerupMsgTimer = 0, powerupMsgText = '';
+        function showPowerupMessage(text) { powerupMsgText = text; powerupMsgTimer = Date.now() + 2000; }
 
         function updatePowerupEffects() {
             const now = Date.now();
-            const settings = getSettings();
+            const s = getSettings();
             for (const [key, expiry] of Object.entries(activePowerups)) {
                 if (now > expiry) {
                     delete activePowerups[key];
                     switch(key) {
-                        case 'speed':    player.speed = settings.playerSpeed; break;
-                        case 'firerate': player.shootCooldown = settings.playerCooldown; break;
-                        case 'damage':   player.bulletDamage = settings.playerDamage; break;
+                        case 'speed':    player.speed = s.playerSpeed; break;
+                        case 'firerate': player.shootCooldown = s.playerCooldown; break;
+                        case 'damage':   player.bulletDamage = s.playerDamage; break;
                     }
                 }
             }
@@ -768,13 +746,11 @@
             if (!player || !player.alive) return;
             const now = Date.now();
             let yOff = CANVAS_SIZE - 50;
-            ctx.font = 'bold 12px Arial';
-            ctx.textAlign = 'left';
+            ctx.font = 'bold 12px Arial'; ctx.textAlign = 'left';
             for (const [key, expiry] of Object.entries(activePowerups)) {
                 if (now < expiry) {
                     const remaining = Math.ceil((expiry - now) / 1000);
-                    let label = '';
-                    let col = '#fff';
+                    let label = '', col = '#fff';
                     switch(key) {
                         case 'speed':     label = `⚡ 移速 ${remaining}s`; col = '#ffff00'; break;
                         case 'firerate':  label = `🔥 射速 ${remaining}s`; col = '#ff8800'; break;
@@ -787,13 +763,10 @@
                 }
             }
             if (powerupMsgTimer > now) {
-                ctx.font = 'bold 20px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillStyle = '#ffdd00';
+                ctx.font = 'bold 20px Arial'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffdd00';
                 ctx.globalAlpha = Math.min(1, (powerupMsgTimer - now) / 500);
                 ctx.fillText(powerupMsgText, CANVAS_SIZE / 2, CANVAS_SIZE / 2 - 40);
-                ctx.globalAlpha = 1;
-                ctx.textAlign = 'left';
+                ctx.globalAlpha = 1; ctx.textAlign = 'left';
             }
         }
 
@@ -807,15 +780,14 @@
                     bullets.splice(i, 1); continue;
                 }
 
-                const bulletRect = { x: b.x - b.size, y: b.y - b.size, width: b.size*2, height: b.size*2 };
                 let bulletHit = false;
+                const bulletRect = { x: b.x - b.size, y: b.y - b.size, width: b.size*2, height: b.size*2 };
 
                 for (let j = walls.length - 1; j >= 0; j--) {
                     if (rectCollision(bulletRect, walls[j])) {
-                        const wall = walls[j];
-                        if (wall.type === 'destructible') {
-                            wall.health--;
-                            if (wall.health <= 0) walls.splice(j, 1);
+                        if (walls[j].type === 'destructible') {
+                            walls[j].health--;
+                            if (walls[j].health <= 0) walls.splice(j, 1);
                         }
                         bulletHit = true; break;
                     }
@@ -824,24 +796,18 @@
 
                 if (b.isPlayer) {
                     if (boss && boss.alive && rectCollision(bulletRect, boss)) {
-                        const killed = boss.hit(b.damage);
-                        if (killed) {
-                            score += 500;
-                            bossActive = false;
-                            playSound('bossDead');
-                            updateUI();
+                        if (boss.hit(b.damage)) {
+                            score += 500; bossActive = false;
+                            playSound('bossDead'); updateUI();
                         }
                         bulletHit = true;
                     }
                     if (!bulletHit) {
                         for (let j = enemies.length - 1; j >= 0; j--) {
                             if (rectCollision(bulletRect, enemies[j])) {
-                                const killed = enemies[j].hit(b.damage);
-                                if (killed) {
-                                    enemies.splice(j, 1);
-                                    score += 100;
-                                    playSound('enemyDead');
-                                    updateUI();
+                                if (enemies[j].hit(b.damage)) {
+                                    enemies.splice(j, 1); score += 100;
+                                    playSound('enemyDead'); updateUI();
                                 }
                                 bulletHit = true; break;
                             }
@@ -850,11 +816,9 @@
                 } else {
                     if (rectCollision(bulletRect, player)) {
                         if (!player.invincible) {
-                            player.hit(b.damage || 1);
-                            updateUI();
+                            player.hit(b.damage || 1); updateUI();
                             if (!player.alive) {
-                                playSound('defeat');
-                                gameOver();
+                                playSound('defeat'); gameOver();
                             } else {
                                 player.x = (CANVAS_SIZE - TANK_SIZE) / 2;
                                 player.y = CANVAS_SIZE - TANK_SIZE - 10;
@@ -872,6 +836,23 @@
                 ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
                 ctx.fill();
             }
+
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bi = bullets[i];
+                if (!bi) continue;
+                for (let j = i - 1; j >= 0; j--) {
+                    const bj = bullets[j];
+                    if (!bj) continue;
+                    if (bi.isPlayer !== bj.isPlayer) {
+                        const dx = bi.x - bj.x, dy = bi.y - bj.y;
+                        if (dx * dx + dy * dy < (bi.size + bj.size) * (bi.size + bj.size)) {
+                            bullets.splice(Math.max(i, j), 1);
+                            bullets.splice(Math.min(i, j), 1);
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         function rectCollision(a, b) {
@@ -880,39 +861,29 @@
 
         function createWalls() {
             walls = [];
-            const settings = getSettings();
+            const s = getSettings();
             const cols = Math.floor(CANVAS_SIZE / GRID_STEP);
-            const terrain = TERRAIN_COLORS[settings.terrainType];
-
             let density;
-            switch(settings.obstacleDensity) {
+            switch(s.obstacleDensity) {
                 case 'sparse': density = 0.1; break;
                 case 'normal': density = 0.2; break;
                 case 'dense':  density = 0.32; break;
                 default: density = 0.2;
             }
-
             for (let row = 0; row < cols; row++) {
                 for (let col = 0; col < cols; col++) {
                     const cx = col * GRID_STEP + (GRID_STEP - WALL_SIZE) / 2;
                     const cy = row * GRID_STEP + (GRID_STEP - WALL_SIZE) / 2;
-
                     if (cy + WALL_SIZE > CANVAS_SIZE - 50 && cx > (CANVAS_SIZE / 2 - 80) && cx < (CANVAS_SIZE / 2 + 80)) continue;
                     if (cy < 70 && cx > (CANVAS_SIZE / 2 - 80) && cx < (CANVAS_SIZE / 2 + 80)) continue;
-
                     if (Math.random() < density) {
                         let type;
-                        if (settings.terrainType === 'urban') {
-                            type = Math.random() < 0.6 ? 'indestructible' : 'destructible';
-                        } else if (settings.terrainType === 'desert') {
-                            type = Math.random() < 0.3 ? 'indestructible' : 'destructible';
-                        } else {
-                            type = Math.random() < 0.4 ? 'indestructible' : 'destructible';
-                        }
+                        if (s.terrainType === 'urban') type = Math.random() < 0.6 ? 'indestructible' : 'destructible';
+                        else if (s.terrainType === 'desert') type = Math.random() < 0.3 ? 'indestructible' : 'destructible';
+                        else type = Math.random() < 0.4 ? 'indestructible' : 'destructible';
                         walls.push({
                             x: cx, y: cy, width: WALL_SIZE, height: WALL_SIZE,
-                            type: type,
-                            health: type === 'destructible' ? settings.wallHP : Infinity
+                            type, health: type === 'destructible' ? s.wallHP : Infinity
                         });
                     }
                 }
@@ -920,20 +891,19 @@
         }
 
         function drawWalls() {
-            const settings = getSettings();
-            const terrain = TERRAIN_COLORS[settings.terrainType];
+            const s = getSettings();
+            const terrain = TERRAIN_COLORS[s.terrainType];
             for (const wall of walls) {
                 if (wall.type === 'indestructible') {
                     ctx.fillStyle = '#000000';
                     ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
-                    ctx.strokeStyle = '#333';
-                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
                     ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
                     ctx.fillStyle = '#222';
                     ctx.fillRect(wall.x + 4, wall.y + 4, 8, 8);
                     ctx.fillRect(wall.x + wall.width - 12, wall.y + wall.height - 12, 8, 8);
                 } else {
-                    const hpRatio = wall.health / settings.wallHP;
+                    const hpRatio = wall.health / s.wallHP;
                     const [r, g, b] = terrain.wallDmg;
                     const gr = Math.floor(g * hpRatio + 30);
                     ctx.fillStyle = `rgb(${r}, ${gr}, ${b})`;
@@ -942,16 +912,9 @@
                     ctx.lineWidth = 2;
                     ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
                     if (wall.health === 1) {
-                        ctx.strokeStyle = `rgba(0,0,0,0.5)`;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(wall.x, wall.y);
-                        ctx.lineTo(wall.x + wall.width, wall.y + wall.height);
-                        ctx.stroke();
-                        ctx.beginPath();
-                        ctx.moveTo(wall.x + wall.width, wall.y);
-                        ctx.lineTo(wall.x, wall.y + wall.height);
-                        ctx.stroke();
+                        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.moveTo(wall.x, wall.y); ctx.lineTo(wall.x + wall.width, wall.y + wall.height); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(wall.x + wall.width, wall.y); ctx.lineTo(wall.x, wall.y + wall.height); ctx.stroke();
                     }
                 }
             }
@@ -978,16 +941,11 @@
                 if (!enemy.alive) continue;
                 if (Math.random() < 0.015) {
                     const dirs = ['up', 'down', 'left', 'right'];
-                    enemy.direction = dirs[Math.floor(Math.random() * dirs.length)];
+                    enemy.direction = dirs[Math.floor(Math.random() * 4)];
                 }
                 if (Math.random() < 0.008) {
-                    const dx = player.x - enemy.x;
-                    const dy = player.y - enemy.y;
-                    if (Math.abs(dx) > Math.abs(dy)) {
-                        enemy.direction = dx > 0 ? 'right' : 'left';
-                    } else {
-                        enemy.direction = dy > 0 ? 'down' : 'up';
-                    }
+                    const dx = player.x - enemy.x, dy = player.y - enemy.y;
+                    enemy.direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
                 }
                 if (Math.random() < 0.02) enemy.shoot();
                 enemy.move(enemy.direction);
@@ -1011,23 +969,20 @@
                     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
                     ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 48px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.fillText('暂停', CANVAS_SIZE/2, CANVAS_SIZE/2);
-                    ctx.textAlign = 'left';
-                    ctx.textBaseline = 'alphabetic';
+                    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
                 }
                 return;
             }
 
-            const settings = getSettings();
-            const terrain = TERRAIN_COLORS[settings.terrainType];
+            const s = getSettings();
+            const terrain = TERRAIN_COLORS[s.terrainType];
 
             ctx.fillStyle = terrain.bg;
             ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-            ctx.strokeStyle = terrain.grid;
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = terrain.grid; ctx.lineWidth = 1;
             for (let i = 0; i <= CANVAS_SIZE; i += GRID_STEP) {
                 ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, CANVAS_SIZE); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(CANVAS_SIZE, i); ctx.stroke();
@@ -1039,9 +994,7 @@
                 if (keys['ArrowLeft'])  player.move('left');
                 if (keys['ArrowRight']) player.move('right');
                 if (keys[' ']) player.shoot();
-                if (player.invincible && Date.now() > player.invincibleTimer) {
-                    player.invincible = false;
-                }
+                if (player.invincible && Date.now() > player.invincibleTimer) player.invincible = false;
             }
 
             updatePowerupEffects();
@@ -1053,9 +1006,7 @@
             checkPowerupCollision();
             drawBullets();
 
-            if (Date.now() - lastPowerupSpawn > 5000 && Math.random() < 0.005) {
-                spawnPowerup();
-            }
+            if (Date.now() - lastPowerupSpawn > 5000 && Math.random() < 0.005) spawnPowerup();
 
             for (const enemy of enemies) enemy.draw();
             if (boss && boss.alive) boss.draw();
@@ -1065,12 +1016,8 @@
             drawPowerupEffects();
 
             if (enemies.length === 0 && !bossActive && gameRunning) {
-                if (!boss) {
-                    showBossWarning();
-                } else if (!boss.alive) {
-                    playSound('victory');
-                    levelComplete();
-                }
+                if (!boss) showBossWarning();
+                else if (!boss.alive) { playSound('victory'); levelComplete(); }
             }
         }
 
@@ -1079,21 +1026,13 @@
             document.getElementById('bossWarningText').textContent = `关卡 ${level} Boss 出现!`;
             warning.style.display = 'flex';
             playSound('bossWarning');
-            setTimeout(() => {
-                warning.style.display = 'none';
-                spawnBoss();
-                updateUI();
-            }, 1500);
+            setTimeout(() => { warning.style.display = 'none'; spawnBoss(); updateUI(); }, 1500);
         }
 
         function initGame() {
             applyMapSettings();
             player = new Tank((CANVAS_SIZE - TANK_SIZE) / 2, CANVAS_SIZE - TANK_SIZE - 10, true, false);
-            bullets = [];
-            powerups = [];
-            boss = null;
-            bossActive = false;
-            activePowerups = {};
+            bullets = []; powerups = []; boss = null; bossActive = false; activePowerups = {};
             lastPowerupSpawn = Date.now();
             createWalls();
             spawnEnemies();
@@ -1101,12 +1040,11 @@
         }
 
         function startGame() {
+            gameSettings = readSettings();
             enemyCount = parseInt(document.getElementById('enemyCountInput').value) || 5;
             document.getElementById('startScreen').style.display = 'none';
-            score = 0;
-            level = 1;
-            gameRunning = true;
-            gamePaused = false;
+            score = 0; level = 1;
+            gameRunning = true; gamePaused = false;
             initGame();
             updateButtons();
         }
@@ -1125,29 +1063,24 @@
                 btnPause.disabled = false;
                 btnPause.textContent = gamePaused ? '▶ 继续' : '⏸ 暂停';
             } else {
-                btnStart.disabled = false;
-                btnStart.textContent = '▶ 开始';
-                btnPause.disabled = true;
-                btnPause.textContent = '⏸ 暂停';
+                btnStart.disabled = false; btnStart.textContent = '▶ 开始';
+                btnPause.disabled = true; btnPause.textContent = '⏸ 暂停';
             }
         }
 
         function restartGame() {
             document.getElementById('gameOver').style.display = 'none';
-            score = 0;
-            level = 1;
-            gameRunning = true;
-            gamePaused = false;
+            gameSettings = readSettings();
+            score = 0; level = 1;
+            gameRunning = true; gamePaused = false;
             initGame();
             updateButtons();
         }
 
         function nextLevel() {
             document.getElementById('levelComplete').style.display = 'none';
-            level++;
-            enemyCount += 2;
-            gameRunning = true;
-            gamePaused = false;
+            level++; enemyCount += 2;
+            gameRunning = true; gamePaused = false;
             initGame();
             updateButtons();
         }
@@ -1168,13 +1101,8 @@
 
         document.addEventListener('keydown', (e) => {
             keys[e.key] = true;
-            if (e.key === 'p' || e.key === 'P') {
-                gamePaused = !gamePaused;
-                updateButtons();
-            }
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
-                e.preventDefault();
-            }
+            if (e.key === 'p' || e.key === 'P') { gamePaused = !gamePaused; updateButtons(); }
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
         });
 
         document.addEventListener('keyup', (e) => { keys[e.key] = false; });
