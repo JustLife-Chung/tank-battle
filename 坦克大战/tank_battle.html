@@ -968,7 +968,7 @@
 
             if (!gameRunning || gamePaused) {
                 if (gamePaused && gameRunning) {
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
                     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
                     ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 48px Arial';
@@ -1061,10 +1061,12 @@
         function updateButtons() {
             const btnStart = document.getElementById('btnStart');
             const btnPause = document.getElementById('btnPause');
-            if (gameRunning) {
-                btnStart.disabled = true;
-                btnPause.disabled = false;
-                btnPause.textContent = gamePaused ? '▶ 继续' : '⏸ 暂停';
+            if (gameRunning && !gamePaused) {
+                btnStart.disabled = false; btnStart.textContent = '▶ 重新开始';
+                btnPause.disabled = false; btnPause.textContent = '⏸ 暂停';
+            } else if (gameRunning && gamePaused) {
+                btnStart.disabled = false; btnStart.textContent = '▶ 重新开始';
+                btnPause.disabled = false; btnPause.textContent = '▶ 继续';
             } else {
                 btnStart.disabled = false; btnStart.textContent = '▶ 开始';
                 btnPause.disabled = true; btnPause.textContent = '⏸ 暂停';
