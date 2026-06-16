@@ -44,6 +44,12 @@
         .powerup-legend { margin-top: 10px; padding-top: 10px; border-top: 1px solid #0f3460; }
         .powerup-legend h3 { color: #ff0000; margin-bottom: 8px; font-size: 14px; }
         .powerup-legend p { color: #aaa; font-size: 11px; margin: 3px 0; }
+        .active-powerups { margin-top: 10px; padding-top: 10px; border-top: 1px solid #0f3460; }
+        .active-powerups h3 { color: #ff0000; margin-bottom: 8px; font-size: 14px; }
+        .powerup-entry { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; font-size: 12px; }
+        .powerup-entry .pu-info { color: #fff; }
+        .powerup-entry .pu-time { font-weight: bold; font-size: 11px; }
+        .no-powerup { color: #aaa; font-size: 11px; }
         .start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: flex; justify-content: center; align-items: center; z-index: 100; flex-direction: column; }
         .start-screen h1 { color: #ff0000; font-size: 80px; text-shadow: 0 0 30px rgba(255, 0, 0, 0.6), 0 0 60px rgba(255, 0, 0, 0.3); margin-bottom: 10px; letter-spacing: 12px; }
         .start-screen p { color: #ccc; font-size: 20px; margin: 8px 0; }
@@ -75,8 +81,6 @@
     </style>
 </head>
 <body>
-    <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊 音效开启</button>
-
     <div class="settings-panel" id="settingsPanel">
         <h2>⚙️ 游戏设置</h2>
         <h3>🗺️ 地图选项</h3>
@@ -101,6 +105,9 @@
             <button class="ctrl-btn start-btn-ctrl" id="btnStart" onclick="startGame()">▶ 开始</button>
             <button class="ctrl-btn pause-btn-ctrl" id="btnPause" onclick="togglePause()" disabled>⏸ 暂停</button>
         </div>
+        <div style="margin-top: 10px;">
+            <button class="ctrl-btn" id="soundToggle" onclick="toggleSound()" style="width:100%;background:#0066ff;color:#fff;">🔊 音效开启</button>
+        </div>
     </div>
 
     <canvas id="gameCanvas" width="600" height="600"></canvas>
@@ -115,6 +122,7 @@
         <div class="controls"><h3>操作说明</h3><p>↑↓←→: 移动坦克</p><p>空格: 发射子弹</p><p>P: 暂停游戏</p></div>
         <div class="controls"><h3>游戏规则</h3><p>🔴 红色 = 玩家</p><p>🔵 蓝色 = 敌人</p><p>🟣 紫色 = Boss</p><p>⬛ 黑色 = 不可摧毁</p><p>🟩 绿色 = 可被摧毁</p></div>
         <div class="powerup-legend"><h3>🎁 道具效果</h3><p>⚡ 黄色 = 移速提升</p><p>🔥 橙色 = 射速提升</p><p>💚 绿色 = 血量恢复</p><p>💎 蓝色 = 伤害增强</p><p>⭐ 金色 = 散弹射击</p></div>
+        <div class="active-powerups" id="activePowerupsSection"><h3>🎯 当前增益</h3><div id="activePowerupsList"><p class="no-powerup">暂无增益</p></div></div>
     </div>
 
     <div class="start-screen" id="startScreen">
@@ -143,11 +151,11 @@
             forest: { bg: '#0a1a0a', grid: '#1a3a1a', wallDmg: [0, 100, 30] }
         };
         const POWERUP_TYPES = [
-            { id: 'speed', name: '移速提升', color: '#ffff00', symbol: '⚡', duration: 8000 },
-            { id: 'firerate', name: '射速提升', color: '#ff8800', symbol: '🔥', duration: 8000 },
-            { id: 'heal', name: '血量恢复', color: '#00ff88', symbol: '💚', duration: 0 },
-            { id: 'damage', name: '伤害增强', color: '#00aaff', symbol: '💎', duration: 10000 },
-            { id: 'multishot', name: '散弹射击', color: '#ffdd00', symbol: '⭐', duration: 8000 }
+            { id: 'speed', name: '移速提升', color: '#ffff00', symbol: '⚡', step: 0.5 },
+            { id: 'firerate', name: '射速提升', color: '#ff8800', symbol: '🔥', step: 80 },
+            { id: 'heal', name: '血量恢复', color: '#00ff88', symbol: '💚', heal: 2 },
+            { id: 'damage', name: '伤害增强', color: '#00aaff', symbol: '💎', step: 1 },
+            { id: 'multishot', name: '散弹射击', color: '#ffdd00', symbol: '⭐', step: 0 }
         ];
         const TANK_SIZE = 36, WALL_SIZE = 36, BOSS_BASE_HP = 15, BOSS_SCALE_PER_LEVEL = 1.6;
 
@@ -155,8 +163,10 @@
         let GRID_STEP = 42;
         let gameRunning = false, gamePaused = false, score = 0, level = 1, enemyCount = 5;
         let keys = {}, player, enemies = [], walls = [], bullets = [], powerups = [];
-        let boss = null, bossActive = false, activePowerups = {};
+        let boss = null, bossActive = false, permanentPowerups = {};
         let soundEnabled = true, audioCtx = null, lastPowerupSpawn = 0, gameSettings = null;
+        let multishotCount = 0;
+        const POWERUP_CAPS = { speed: 3.0, firerate: 200, damage: 5, multishot: 5 };
 
         function getAudioContext() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
         function playSound(type) {
@@ -168,9 +178,14 @@
                 switch(type) {
                     case 'shoot': osc.frequency.setValueAtTime(800, t); osc.frequency.exponentialRampToValueAtTime(200, t+0.1); gain.gain.setValueAtTime(0.3, t); gain.gain.exponentialRampToValueAtTime(0.01, t+0.1); osc.start(t); osc.stop(t+0.1); break;
                     case 'enemyDead': osc.frequency.setValueAtTime(300, t); osc.frequency.exponentialRampToValueAtTime(100, t+0.3); gain.gain.setValueAtTime(0.4, t); gain.gain.exponentialRampToValueAtTime(0.01, t+0.3); osc.start(t); osc.stop(t+0.3); break;
-                    case 'bossDead': osc.type='sawtooth'; osc.frequency.setValueAtTime(600, t); osc.frequency.exponentialRampToValueAtTime(50, t+0.6); gain.gain.setValueAtTime(0.5, t); gain.gain.exponentialRampToValueAtTime(0.01, t+0.6); osc.start(t); osc.stop(t+0.6); break;
+                    case 'bossDead': osc.type='sine'; osc.frequency.setValueAtTime(500, t); osc.frequency.exponentialRampToValueAtTime(120, t+0.8); gain.gain.setValueAtTime(0.25, t); gain.gain.exponentialRampToValueAtTime(0.01, t+0.8); osc.start(t); osc.stop(t+0.8); break;
                     case 'powerup': osc.type='sine'; osc.frequency.setValueAtTime(600, t); osc.frequency.setValueAtTime(900, t+0.1); osc.frequency.setValueAtTime(1200, t+0.2); gain.gain.setValueAtTime(0.3, t); gain.gain.exponentialRampToValueAtTime(0.01, t+0.3); osc.start(t); osc.stop(t+0.3); break;
-                    case 'bossWarning': osc.type='square'; osc.frequency.setValueAtTime(150, t); osc.frequency.setValueAtTime(200, t+0.3); osc.frequency.setValueAtTime(150, t+0.6); osc.frequency.setValueAtTime(200, t+0.9); gain.gain.setValueAtTime(0.4, t); gain.gain.exponentialRampToValueAtTime(0.01, t+1.2); osc.start(t); osc.stop(t+1.2); break;
+                    case 'bossWarning': {
+                        osc.type='triangle'; osc.frequency.setValueAtTime(80, t);
+                        osc.frequency.linearRampToValueAtTime(120, t+0.4); osc.frequency.linearRampToValueAtTime(80, t+0.8);
+                        gain.gain.setValueAtTime(0.08, t); gain.gain.linearRampToValueAtTime(0.15, t+0.4);
+                        gain.gain.exponentialRampToValueAtTime(0.01, t+1.0); osc.start(t); osc.stop(t+1.0); break;
+                    }
                     case 'victory': osc.type='square'; osc.frequency.setValueAtTime(523, t); osc.frequency.setValueAtTime(659, t+0.15); osc.frequency.setValueAtTime(784, t+0.3); osc.frequency.setValueAtTime(1047, t+0.45); gain.gain.setValueAtTime(0.3, t); gain.gain.exponentialRampToValueAtTime(0.01, t+0.6); osc.start(t); osc.stop(t+0.6); break;
                     case 'defeat': osc.type='sawtooth'; osc.frequency.setValueAtTime(400, t); osc.frequency.exponentialRampToValueAtTime(80, t+0.5); gain.gain.setValueAtTime(0.3, t); gain.gain.exponentialRampToValueAtTime(0.01, t+0.5); osc.start(t); osc.stop(t+0.5); break;
                     case 'hit': osc.type='triangle'; osc.frequency.setValueAtTime(600, t); osc.frequency.exponentialRampToValueAtTime(100, t+0.08); gain.gain.setValueAtTime(0.2, t); gain.gain.exponentialRampToValueAtTime(0.01, t+0.08); osc.start(t); osc.stop(t+0.08); break;
@@ -284,9 +299,12 @@
                 const sp = this.bulletSpeed, cx=this.x+this.width/2, cy=this.y+this.height/2;
                 switch(this.direction) { case 'up': bx=cx;by=this.y;dx=0;dy=-sp;break; case 'down': bx=cx;by=this.y+this.height;dx=0;dy=sp;break; case 'left': bx=this.x;by=cy;dx=-sp;dy=0;break; case 'right': bx=this.x+this.width;by=cy;dx=sp;dy=0;break; }
                 const dmg = this.bulletDamage||1;
-                if (this.isPlayer&&activePowerups.multishot) {
-                    const off=[{ddx:dx,ddy:dy},{ddx:dx*Math.cos(0.25)-dy*Math.sin(0.25),ddy:dx*Math.sin(0.25)+dy*Math.cos(0.25)},{ddx:dx*Math.cos(-0.25)-dy*Math.sin(-0.25),ddy:dx*Math.sin(-0.25)+dy*Math.cos(-0.25)}];
-                    for (const o of off) bullets.push({x:bx,y:by,dx:o.ddx,dy:o.ddy,isPlayer:this.isPlayer,size:4,damage:dmg});
+                if (this.isPlayer&&multishotCount>0) {
+                    const total=multishotCount+1, spread=0.25, start=-(total-1)*spread/2;
+                    for (let i=0;i<total;i++) {
+                        const a=start+i*spread, ndx=dx*Math.cos(a)-dy*Math.sin(a), ndy=dx*Math.sin(a)+dy*Math.cos(a);
+                        bullets.push({x:bx,y:by,dx:ndx,dy:ndy,isPlayer:true,size:4,damage:dmg});
+                    }
                 } else bullets.push({x:bx,y:by,dx,dy,isPlayer:this.isPlayer,size:this.isBoss?6:4,damage:dmg});
                 this.lastShot=now; if (this.isPlayer) playSound('shoot');
             }
@@ -294,7 +312,13 @@
                 if (this.invincible) return false;
                 this.health-=(dmg||1); playSound('hit');
                 if (this.health<=0) { this.alive=false; return true; }
-                if (this.isPlayer) { this.invincible=true; this.invincibleTimer=Date.now()+2000; }
+                if (this.isPlayer) {
+                    this.invincible=true; this.invincibleTimer=Date.now()+2000;
+                    const s=getSettings();
+                    this.speed=s.playerSpeed; this.shootCooldown=s.playerCooldown;
+                    this.bulletDamage=s.playerDamage; activePowerups={}; multishotCount=0;
+                    updatePowerupDisplay();
+                }
                 return false;
             }
         }
@@ -320,16 +344,15 @@
         }
         function spawnPowerup() {
             if (powerups.length>=5) return;
-            const now=Date.now(); if (now-lastPowerupSpawn<5000) return; lastPowerupSpawn=now;
             const type=POWERUP_TYPES[Math.floor(Math.random()*POWERUP_TYPES.length)];
             let x,y,a=0;
             do { x=Math.random()*(CANVAS_W-30); y=Math.random()*(CANVAS_H-30); a++; } while(a<50&&walls.some(w=>rc({x,y,width:24,height:24},w)));
-            powerups.push({x,y,width:24,height:24,type,spawnTime:now});
+            powerups.push({x,y,width:24,height:24,type,spawnTime:Date.now()});
         }
         function drawPowerups() {
             const now=Date.now();
             for (let i=powerups.length-1;i>=0;i--) {
-                const p=powerups[i]; if (now-p.spawnTime>12000) { powerups.splice(i,1); continue; }
+                const p=powerups[i];
                 const pulse=Math.sin(now/200)*3;
                 ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.arc(p.x+p.width/2,p.y+p.height/2,14+pulse,0,Math.PI*2); ctx.fill();
                 ctx.fillStyle=p.type.color; ctx.fillRect(p.x,p.y,p.width,p.height);
@@ -348,14 +371,40 @@
             }
         }
         function applyPowerup(type) {
+            const s = getSettings();
             switch(type.id) {
-                case 'speed': player.speed+=0.8; activePowerups.speed=Date.now()+type.duration; showPowerupMessage('⚡ 移速提升!'); break;
-                case 'firerate': player.shootCooldown=Math.max(100,player.shootCooldown-200); activePowerups.firerate=Date.now()+type.duration; showPowerupMessage('🔥 射速提升!'); break;
-                case 'heal': player.health=Math.min(player.health+2,player.maxHealth+5); showPowerupMessage('💚 血量恢复 +2!'); break;
-                case 'damage': player.bulletDamage+=1; activePowerups.damage=Date.now()+type.duration; showPowerupMessage('💎 伤害增强!'); break;
-                case 'multishot': activePowerups.multishot=Date.now()+type.duration; showPowerupMessage('⭐ 散弹射击!'); break;
+                case 'speed': {
+                    const maxSpd = s.playerSpeed + POWERUP_CAPS.speed;
+                    if (player.speed >= maxSpd) { showPowerupMessage('⚡ 移速已达到上限!'); break; }
+                    player.speed = Math.min(player.speed + 0.8, maxSpd);
+                    showPowerupMessage(`⚡ 移速 +${(player.speed - s.playerSpeed).toFixed(1)}`); break;
+                }
+                case 'firerate': {
+                    const minCd = Math.max(POWERUP_CAPS.firerate, s.playerCooldown - POWERUP_CAPS.firerate);
+                    if (player.shootCooldown <= minCd) { showPowerupMessage('🔥 射速已达到上限!'); break; }
+                    player.shootCooldown = Math.max(minCd, player.shootCooldown - 200);
+                    showPowerupMessage(`🔥 射速冷却 ${player.shootCooldown}ms`); break;
+                }
+                case 'heal': {
+                    const maxHp = player.maxHealth + 5;
+                    if (player.health >= maxHp) { showPowerupMessage('💚 血量已达到上限!'); break; }
+                    player.health = Math.min(player.health + 2, maxHp);
+                    showPowerupMessage(`💚 血量 ${player.health}/${maxHp}`); break;
+                }
+                case 'damage': {
+                    const maxDmg = s.playerDamage + POWERUP_CAPS.damage;
+                    if (player.bulletDamage >= maxDmg) { showPowerupMessage('💎 伤害已达到上限!'); break; }
+                    player.bulletDamage = Math.min(player.bulletDamage + 1, maxDmg);
+                    showPowerupMessage(`💎 伤害 +${player.bulletDamage - s.playerDamage}`); break;
+                }
+                case 'multishot': {
+                    if (multishotCount >= POWERUP_CAPS.multishot) { showPowerupMessage('⭐ 散弹已达到上限!'); break; }
+                    multishotCount++;
+                    showPowerupMessage(`⭐ 散弹 x${multishotCount + 1}`); break;
+                }
             }
             updateUI();
+            updatePowerupDisplay();
         }
         let powerupMsgTimer=0, powerupMsgText='';
         function showPowerupMessage(t) { powerupMsgText=t; powerupMsgTimer=Date.now()+2000; }
@@ -363,21 +412,32 @@
             const now=Date.now(), s=getSettings();
             for (const [k,exp] of Object.entries(activePowerups)) {
                 if (now>exp) { delete activePowerups[k];
-                    switch(k) { case 'speed': player.speed=s.playerSpeed; break; case 'firerate': player.shootCooldown=s.playerCooldown; break; case 'damage': player.bulletDamage=s.playerDamage; break; }
+                    switch(k) { case 'speed': player.speed=s.playerSpeed; break; case 'firerate': player.shootCooldown=s.playerCooldown; break; case 'damage': player.bulletDamage=s.playerDamage; break; case 'multishot': multishotCount=0; break; }
                 }
             }
         }
+        function updatePowerupDisplay() {
+            const el=document.getElementById('activePowerupsList');
+            if (!el) return;
+            const s=getSettings();
+            const buffs=[];
+            const spdBonus=(player.speed-s.playerSpeed).toFixed(1);
+            const spdMax=(POWERUP_CAPS.speed).toFixed(1);
+            buffs.push({name:'⚡ 移速',val:`+${spdBonus}/${spdMax}`,color:'#ffff00',maxed:player.speed>=s.playerSpeed+POWERUP_CAPS.speed});
+            const cdReduction=s.playerCooldown-player.shootCooldown;
+            const cdMax=POWERUP_CAPS.firerate;
+            buffs.push({name:'🔥 射速',val:`${player.shootCooldown}ms`,color:'#ff8800',maxed:player.shootCooldown<=Math.max(cdMax,s.playerCooldown-cdMax)});
+            const dmgBonus=player.bulletDamage-s.playerDamage;
+            buffs.push({name:'💎 伤害',val:`+${dmgBonus}/${POWERUP_CAPS.damage}`,color:'#00aaff',maxed:player.bulletDamage>=s.playerDamage+POWERUP_CAPS.damage});
+            buffs.push({name:'⭐ 散弹',val:`x${multishotCount+1}/${POWERUP_CAPS.multishot+1}`,color:'#ffdd00',maxed:multishotCount>=POWERUP_CAPS.multishot});
+            buffs.push({name:'❤️ 血量',val:`${player.health}/${player.maxHealth+5}`,color:'#00ff88',maxed:player.health>=player.maxHealth+5});
+            el.innerHTML=buffs.map(b=>`<div class="powerup-entry"><span class="pu-info" style="color:${b.color}">${b.name}</span><span class="pu-time" style="color:${b.maxed?'#ff4444':b.color}">${b.val}${b.maxed?' MAX':''}</span></div>`).join('');
+        }
         function drawPowerupEffects() {
             if (!player||!player.alive) return;
-            const now=Date.now(); let yo=CANVAS_H-50;
-            ctx.font='bold 12px Arial'; ctx.textAlign='left';
-            for (const [k,exp] of Object.entries(activePowerups)) {
-                if (now<exp) { const r=Math.ceil((exp-now)/1000); let l='',c='#fff';
-                    switch(k) { case 'speed':l=`⚡ 移速 ${r}s`;c='#ffff00';break; case 'firerate':l=`🔥 射速 ${r}s`;c='#ff8800';break; case 'damage':l=`💎 伤害 ${r}s`;c='#00aaff';break; case 'multishot':l=`⭐ 散弹 ${r}s`;c='#ffdd00';break; }
-                    ctx.fillStyle=c; ctx.fillText(l,10,yo); yo-=18;
-                }
-            }
-            if (powerupMsgTimer>now) { ctx.font='bold 20px Arial'; ctx.textAlign='center'; ctx.fillStyle='#ffdd00'; ctx.globalAlpha=Math.min(1,(powerupMsgTimer-now)/500); ctx.fillText(powerupMsgText,CANVAS_W/2,CANVAS_H/2-40); ctx.globalAlpha=1; ctx.textAlign='left'; }
+            const now=Date.now();
+            updatePowerupDisplay();
+            if (powerupMsgTimer>now) { ctx.font='bold 14px Arial'; ctx.textAlign='center'; ctx.fillStyle='#ffdd00'; ctx.globalAlpha=Math.min(1,(powerupMsgTimer-now)/500); ctx.fillText(powerupMsgText,player.x+player.width/2,player.y-10); ctx.globalAlpha=1; ctx.textAlign='left'; }
         }
 
         function drawBullets() {
@@ -508,14 +568,14 @@
         function initGame() {
             applyMapSettings();
             player=new Tank((CANVAS_W-TANK_SIZE)/2,CANVAS_H-TANK_SIZE-10,true,false);
-            bullets=[];powerups=[];boss=null;bossActive=false;activePowerups={};lastPowerupSpawn=Date.now();
+            bullets=[];powerups=[];boss=null;bossActive=false;lastPowerupSpawn=Date.now();
             createWalls(); spawnEnemies(); updateUI();
         }
         function startGame() {
             gameSettings=readSettings(); enemyCount=parseInt(document.getElementById('enemyCountInput').value)||5;
             document.getElementById('startScreen').style.display='none';
             canvas.style.display='block';
-            score=0;level=1;gameRunning=true;gamePaused=false;initGame();updateButtons();
+            score=0;level=1;gameRunning=true;gamePaused=false;activePowerups={};multishotCount=0;initGame();updateButtons();
         }
         function togglePause() { if(!gameRunning)return; gamePaused=!gamePaused; updateButtons(); }
         function updateButtons() {
@@ -524,8 +584,8 @@
             else if(gameRunning&&gamePaused){bs.disabled=false;bs.textContent='▶ 开始';bp.disabled=false;bp.textContent='▶ 继续';}
             else{bs.disabled=false;bs.textContent='▶ 开始';bp.disabled=true;bp.textContent='⏸ 暂停';}
         }
-        function restartGame() { document.getElementById('gameOver').style.display='none'; gameSettings=readSettings(); score=0;level=1;gameRunning=true;gamePaused=false;initGame();updateButtons(); }
-        function nextLevel() { document.getElementById('levelComplete').style.display='none'; gameSettings=readSettings(); level++;enemyCount+=2;gameRunning=true;gamePaused=false;initGame();updateButtons(); }
+        function restartGame() { document.getElementById('gameOver').style.display='none'; gameSettings=readSettings(); score=0;level=1;gameRunning=true;gamePaused=false;activePowerups={};multishotCount=0;initGame();updateButtons(); }
+        function nextLevel() { document.getElementById('levelComplete').style.display='none'; gameSettings=readSettings(); level++;enemyCount+=2;gameRunning=true;gamePaused=false;const pu=activePowerups,ms=multishotCount,spd=player.speed,cd=player.shootCooldown,dmg=player.bulletDamage,hp=player.health;initGame();activePowerups=pu;multishotCount=ms;player.speed=spd;player.shootCooldown=cd;player.bulletDamage=dmg;player.health=hp;updatePowerupDisplay();updateButtons(); }
         function gameOver() { gameRunning=false; document.getElementById('finalScore').textContent=score; document.getElementById('gameOver').style.display='flex'; updateButtons(); }
         function levelComplete() { gameRunning=false; document.getElementById('levelScore').textContent=score; document.getElementById('levelComplete').style.display='flex'; updateButtons(); }
 
