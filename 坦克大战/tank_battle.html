@@ -167,7 +167,7 @@
         <div class="info-item">Boss: <span id="bossHP">-</span></div>
         <div class="controls"><h3>操作说明</h3><p>↑↓←→: 移动坦克</p><p>空格: 发射子弹</p><p>P: 暂停游戏</p></div>
         <div class="controls"><h3>主动技能</h3><p>Q: 护盾 (15s冷却)</p><p>E: 电磁脉冲 (20s冷却)</p><p>R: 空袭 (30s冷却)</p><p style="color:#00ff88;font-size:10px;">拾取道具可强化技能</p></div>
-        <div class="controls"><h3>游戏规则</h3><p>🔴 红色 = 玩家</p><p>🔵 蓝色 = 敌人</p><p>🟣 紫色 = Boss</p><p>⬛ 黑色 = 不可摧毁</p><p>🟩 绿色 = 可被摧毁</p></div>
+        <div class="controls"><h3>游戏规则</h3><p>🔴 红色 = 玩家</p><p>🔵 蓝色 = 普通敌人</p><p>🟠 橙色 = 侦察车(快脆)</p><p>🟤 棕色 = 重型坦克(慢强)</p><p>🟢 绿色 = 狙击手(精准)</p><p>🟣 紫色 = Boss</p><p>⬛ 黑色 = 不可摧毁</p><p>🟩 绿色 = 可被摧毁</p></div>
         <div class="powerup-legend"><h3>🎁 道具效果</h3><p>⚡ 黄色 = 移速提升</p><p>🔥 橙色 = 射速提升</p><p>💚 绿色 = 血量恢复</p><p>💎 蓝色 = 伤害增强</p><p>⭐ 金色 = 散弹射击</p><p>🛡️ 青色 = 护盾强化</p><p>💣 红色 = 空袭强化</p><p>🌀 紫色 = 脉冲强化</p></div>
         <div class="active-powerups" id="activePowerupsSection"><h3>🎯 当前增益</h3><div id="activePowerupsList"><p class="no-powerup">暂无增益</p></div></div>
     </div>
@@ -210,6 +210,13 @@
         let TANK_SIZE = 36, WALL_SIZE = 36;
         const BOSS_BASE_HP = 15, BOSS_SCALE_PER_LEVEL = 1.6, BOSS_DMG_SCALE = 1.3;
         const MAP_SIZE_DIVISORS = { tiny: 6, small: 9, medium: 14, large: 20, huge: 28 };
+
+        const ENEMY_TYPES = {
+            normal: { name: '普通坦克', color: '#0066ff', speedMult: 1, hpMult: 1, sizeMult: 1, shootMult: 1, bulletSpeedMult: 1, ai: 'normal' },
+            scout: { name: '侦察车', color: '#ffaa00', speedMult: 2, hpMult: 0.5, sizeMult: 0.7, shootMult: 0.8, bulletSpeedMult: 1.2, ai: 'aggressive' },
+            heavy: { name: '重型坦克', color: '#cc4400', speedMult: 0.5, hpMult: 3, sizeMult: 1.3, shootMult: 0.6, bulletSpeedMult: 0.8, ai: 'steady' },
+            sniper: { name: '狙击手', color: '#00cc88', speedMult: 0.8, hpMult: 2, sizeMult: 1, shootMult: 0.5, bulletSpeedMult: 2, ai: 'sniper' }
+        };
 
         let CANVAS_W = 600, CANVAS_H = 600;
         let GRID_STEP = 42;
@@ -295,21 +302,24 @@
         }
 
         class Tank {
-            constructor(x, y, isPlayer, isBoss) {
+            constructor(x, y, isPlayer, isBoss, enemyType) {
                 const s = getSettings();
                 this.x = x; this.y = y; this.isPlayer = isPlayer; this.isBoss = isBoss || false;
-                this.width = isBoss ? TANK_SIZE * 1.8 : TANK_SIZE;
-                this.height = isBoss ? TANK_SIZE * 1.8 : TANK_SIZE;
-                this.color = isPlayer ? '#ff0000' : (isBoss ? '#9900ff' : '#0066ff');
+                this.enemyType = (!isPlayer && !isBoss) ? (enemyType || 'normal') : null;
+                const typeData = this.enemyType ? ENEMY_TYPES[this.enemyType] : null;
+                this.width = isBoss ? TANK_SIZE * 1.8 : (typeData ? Math.floor(TANK_SIZE * typeData.sizeMult) : TANK_SIZE);
+                this.height = this.width;
+                this.color = isPlayer ? '#ff0000' : (isBoss ? '#9900ff' : (typeData ? typeData.color : '#0066ff'));
                 this.direction = 'up';
-                this.speed = isPlayer ? s.playerSpeed : (isBoss ? s.enemySpeed * 1.5 : s.enemySpeed);
-                this.baseHealth = isPlayer ? s.playerHP : (isBoss ? Math.floor(BOSS_BASE_HP * Math.pow(BOSS_SCALE_PER_LEVEL, level - 1)) : s.enemyHP);
+                this.speed = isPlayer ? s.playerSpeed : (isBoss ? s.enemySpeed * 1.5 : (typeData ? s.enemySpeed * typeData.speedMult : s.enemySpeed));
+                this.baseHealth = isPlayer ? s.playerHP : (isBoss ? Math.floor(BOSS_BASE_HP * Math.pow(BOSS_SCALE_PER_LEVEL, level - 1)) : (typeData ? Math.ceil(s.enemyHP * typeData.hpMult) : s.enemyHP));
                 this.health = this.baseHealth; this.maxHealth = this.health;
                 this.lastShot = 0;
-                this.shootCooldown = isPlayer ? s.playerCooldown : (isBoss ? Math.floor(s.enemyCooldown * 0.4) : s.enemyCooldown);
-                this.bulletSpeed = isPlayer ? s.playerBulletSpeed : (isBoss ? Math.floor(s.enemyBulletSpeed * 1.8) : s.enemyBulletSpeed);
+                this.shootCooldown = isPlayer ? s.playerCooldown : (isBoss ? Math.floor(s.enemyCooldown * 0.4) : (typeData ? Math.floor(s.enemyCooldown * typeData.shootMult) : s.enemyCooldown));
+                this.bulletSpeed = isPlayer ? s.playerBulletSpeed : (isBoss ? Math.floor(s.enemyBulletSpeed * 1.8) : (typeData ? Math.floor(s.enemyBulletSpeed * typeData.bulletSpeedMult) : s.enemyBulletSpeed));
                 this.bulletDamage = isPlayer ? s.playerDamage : (isBoss ? Math.floor(s.playerDamage * 2 * Math.pow(BOSS_DMG_SCALE, level - 1)) : 1);
                 this.invincible = false; this.invincibleTimer = 0; this.alive = true;
+                this.sniperDist = 150 + Math.random() * 100;
             }
             draw() {
                 if (!this.alive) return;
@@ -760,18 +770,48 @@
         }
         function spawnEnemies() {
             enemies=[];
+            const typePool = ['normal', 'normal', 'scout', 'heavy', 'sniper'];
             for (let i=0;i<enemyCount;i++) {
                 let x,y,a=0;
-                do { x=Math.random()*(CANVAS_W-TANK_SIZE); y=Math.random()*(CANVAS_H*0.4); a++; } while(a<100&&(enemies.some(e=>rc({x,y,width:TANK_SIZE,height:TANK_SIZE},e))||walls.some(w=>rc({x,y,width:TANK_SIZE,height:TANK_SIZE},w))));
-                enemies.push(new Tank(x,y,false,false));
+                const et = typePool[Math.floor(Math.random() * typePool.length)];
+                const ts = Math.floor(TANK_SIZE * ENEMY_TYPES[et].sizeMult);
+                do { x=Math.random()*(CANVAS_W-ts); y=Math.random()*(CANVAS_H*0.4); a++; } while(a<100&&(enemies.some(e=>rc({x,y,width:ts,height:ts},e))||walls.some(w=>rc({x,y,width:ts,height:ts},w))));
+                enemies.push(new Tank(x,y,false,false,et));
             }
         }
         function enemyAI() {
             for (const e of enemies) {
                 if (!e.alive) continue;
-                if (Math.random()<0.015) { const d=['up','down','left','right']; e.direction=d[Math.floor(Math.random()*4)]; }
-                if (Math.random()<0.008) { const dx=player.x-e.x,dy=player.y-e.y; e.direction=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'); }
-                if (Math.random()<0.02) e.shoot(); e.move(e.direction);
+                const dx=player.x-e.x, dy=player.y-e.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const ai = e.enemyType ? ENEMY_TYPES[e.enemyType].ai : 'normal';
+                switch(ai) {
+                    case 'aggressive':
+                        if (Math.random()<0.05) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+                        if (Math.random()<0.04) e.shoot();
+                        e.move(e.direction);
+                        break;
+                    case 'steady':
+                        if (Math.random()<0.02) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+                        if (Math.random()<0.015) e.shoot();
+                        e.move(e.direction);
+                        break;
+                    case 'sniper':
+                        if (dist < e.sniperDist) {
+                            if (Math.random()<0.05) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'left':'right'):(dy>0?'up':'down');
+                            e.move(e.direction);
+                        } else {
+                            if (Math.random()<0.03) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+                            e.move(e.direction);
+                        }
+                        if (Math.random()<0.025) e.shoot();
+                        break;
+                    default:
+                        if (Math.random()<0.015) { const d=['up','down','left','right']; e.direction=d[Math.floor(Math.random()*4)]; }
+                        if (Math.random()<0.008) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+                        if (Math.random()<0.02) e.shoot();
+                        e.move(e.direction);
+                }
             }
         }
         function updateUI() {
