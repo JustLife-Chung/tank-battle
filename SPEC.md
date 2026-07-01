@@ -24,17 +24,46 @@
 - 道具大小：`GRID_STEP × 0.57`
 - 画布大小不变，仅内容缩放
 
+### 1.3 地形效果系统
+| 地形 | 格子颜色 | 效果 |
+|------|----------|------|
+| 沙地 | #c2a84d | 坦克移动速度降低50% |
+| 森林 | #1a4a1a | 隐蔽效果：敌人追踪概率降为35%，射击概率降为25% |
+| 水面 | #1a5aaa | 阻挡所有坦克和炮弹通过 |
+
+#### 地形生成规则
+- 根据地形类型配置生成概率：
+  - 平原: 沙地10%, 森林8%, 水面4%
+  - 沙漠: 沙地30%, 森林3%, 水面6%
+  - 城市: 沙地8%, 森林4%, 水面3%
+  - 森林: 沙地5%, 森林28%, 水面4%
+- 地形格子不会生成在玩家出生点、Boss出生点和障碍物上
+
+#### 实现机制
+```javascript
+const TILE = { EMPTY: 0, SAND: 1, FOREST: 2, WATER: 3 };
+// 移动时检查当前格子地形
+const currentTile = getTerrainAt(this.x + this.width/2, this.y + this.height/2);
+if (currentTile === TILE.WATER) return; // 水面阻挡
+if (currentTile === TILE.SAND) effectiveSpeed *= 0.5; // 沙地减速
+// 森林隐蔽：敌人AI中检测玩家所在格子
+const playerTile = getTerrainAt(player.x + player.width/2, player.y + player.height/2);
+const playerHidden = playerTile === TILE.FOREST;
+const shootMult = playerHidden ? 0.25 : 1;
+const detectMult = playerHidden ? 0.35 : 1;
+```
+
 ---
 
 ## 2. 敌人类型系统
 
 ### 2.1 敌人属性表
-| 类型 | 颜色 | 速度倍率 | 血量倍率 | 体型倍率 | 射击倍率 | 子弹速度 | AI行为 |
-|------|------|----------|----------|----------|----------|----------|--------|
-| 普通坦克 | #0066ff | 1x | 1x | 1x | 1x | 1x | 随机+追踪 |
-| 侦察车 | #ffaa00 | 2x | 0.5x | 0.7x | 0.8x | 1.2x | 积极进攻 |
-| 重型坦克 | #cc4400 | 0.5x | 3x | 1.3x | 0.6x | 0.8x | 稳定追踪 |
-| 狙击手 | #00cc88 | 0.8x | 2x | 1x | 0.5x | 2x | 保持距离 |
+| 类型 | 颜色 | 速度倍率 | 血量倍率 | 体型倍率 | 射击倍率 | 子弹速度 | 伤害 | AI行为 |
+|------|------|----------|----------|----------|----------|----------|------|--------|
+| 普通坦克 | #00bbff 天蓝 | 1x | 1x | 1x | 1x | 1x | 1 | 随机+追踪 |
+| 侦察车 | #ffdd00 金黄 | 2x | 0.5x | 0.7x | 0.8x | 1.2x | 1 | 积极进攻 |
+| 重型坦克 | #dd2244 深红 | 0.5x | 3x | 1.3x | 0.6x | 0.8x | 5 | 稳定追踪 |
+| 狙击手 | #44ff44 亮绿 | 0.8x | 0.8x | 1x | 1x | 3x | 6 | 保持距离 |
 
 ### 2.2 AI行为逻辑
 ```
@@ -42,6 +71,9 @@
 侦察车:   追踪玩家(5%) + 射击(4%)
 重型坦克: 追踪玩家(2%) + 射击(1.5%)
 狙击手:   距离<150时后退，否则前进 + 射击(2.5%)
+
+森林隐蔽效果：
+  玩家在森林格子上时，敌人追踪概率降为35%，射击概率降为25%
 ```
 
 ### 2.3 生成规则
@@ -115,9 +147,15 @@ const dmg = 3 + Math.floor(level * 0.3) + airstrikeUpgrade;
 
 ---
 
-## 6. 玩家生成
+## 6. 玩家系统
 
-### 6.1 安全区规则
+### 6.1 玩家属性
+- 初始HP：3（可自定义1-10）
+- 被敌人炮弹击中时扣除伤害值对应HP，HP归零时游戏结束
+- 被击中后获得2秒无敌时间并传送回出生点
+- 被击中后所有增益效果清空
+
+### 6.2 安全区规则
 ```javascript
 // 生成障碍物时跳过安全区
 const safeRadius = GRID_STEP * 3;
@@ -175,12 +213,15 @@ BOSS_BASE_HP = 15
 BOSS_SCALE_PER_LEVEL = 1.6
 BOSS_DMG_SCALE = 1.3
 MAP_SIZE_DIVISORS = { tiny: 6, small: 9, medium: 14, large: 20, huge: 28 }
+TILE = { EMPTY: 0, SAND: 1, FOREST: 2, WATER: 3 }
+TILE_SPEED_MULT = { 1: 0.5, 2: 1.0, 3: 0 } // 沙地减速50%，水面不可通行
 ```
 
 ### 9.2 状态变量
 ```javascript
 gameRunning, gamePaused, score, level, enemyCount
 player, enemies[], walls[], bullets[], powerups[]
+terrainGrid[][] // 地形格子二维数组
 boss, bossActive
 shieldUpgrade, airstrikeUpgrade, empUpgrade
 skillCooldowns[], empActive, empEndTime, airstrikeEffect
@@ -190,8 +231,11 @@ skillCooldowns[], empActive, empEndTime, airstrikeEffect
 - `initGame()` - 初始化游戏
 - `gameLoop()` - 主循环(60fps)
 - `createWalls()` - 生成障碍物
+- `createTerrain()` - 生成地形格子
+- `drawTerrain()` - 渲染地形效果
+- `getTerrainAt(x, y)` - 获取指定坐标的地形类型
 - `spawnEnemies()` - 生成敌人
-- `enemyAI()` - 敌人AI
+- `enemyAI()` - 敌人AI（含森林隐蔽检测）
 - `bossAI()` - Boss AI
 - `activateSkill()` - 技能激活
 - `updateSkills()` - 技能状态更新
