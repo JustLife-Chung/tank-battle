@@ -169,7 +169,7 @@
         <div class="controls"><h3>主动技能</h3><p>Q: 护盾 (15s冷却)</p><p>E: 电磁脉冲 (20s冷却)</p><p>R: 空袭 (30s冷却)</p><p style="color:#00ff88;font-size:10px;">拾取道具可强化技能</p></div>
         <div class="controls"><h3>游戏规则</h3><p>🔴 红色 = 玩家</p><p>🔵 天蓝 = 普通坦克</p><p>🟡 金黄 = 侦察车(快脆)</p><p>🔴 深红 = 重型坦克(慢强)</p><p>🟢 亮绿 = 狙击手(精准远距)</p><p>🟣 紫色 = Boss</p><p>⬛ 黑色 = 不可摧毁</p><p>🟩 绿色 = 可被摧毁</p></div>
         <div class="controls"><h3>🗺️ 地形效果</h3><p style="color:#c2a84d">🟫 沙地 = 减速50%</p><p style="color:#2d7a2d">🌲 森林 = 隐蔽效果</p><p style="color:#2080dd">🌊 水面 = 无法通行</p><p style="color:#888;font-size:10px">进入森林后敌人更难发现你</p></div>
-        <div class="powerup-legend"><h3>🎁 道具效果</h3><p>⚡ 黄色 = 移速提升</p><p>🔥 橙色 = 射速提升</p><p>💚 绿色 = 血量恢复</p><p>💎 蓝色 = 伤害增强</p><p>⭐ 金色 = 散弹射击</p><p>🛡️ 青色 = 护盾强化</p><p>💣 红色 = 空袭强化</p><p>🌀 紫色 = 脉冲强化</p></div>
+        <div class="powerup-legend"><h3>🎁 道具效果</h3><p>⚡ 黄色 = 移速提升</p><p>🔥 橙色 = 射速提升</p><p>💚 绿色 = 血量恢复</p><p>💎 蓝色 = 伤害增强</p><p>⭐ 金色 = 散弹射击</p><p>🛡️ 青色 = 护盾强化</p><p>🛡 青蓝 = 临时护盾(抵消伤害)</p><p>💣 红色 = 空袭强化</p><p>🌀 紫色 = 脉冲强化</p></div>
         <div class="active-powerups" id="activePowerupsSection"><h3>🎯 当前增益</h3><div id="activePowerupsList"><p class="no-powerup">暂无增益</p></div></div>
     </div>
 
@@ -206,7 +206,8 @@
             { id: 'multishot', name: '散弹射击', color: '#ffdd00', symbol: '⭐', step: 0 },
             { id: 'shieldUp', name: '护盾强化', color: '#00ffaa', symbol: '🛡️', step: 1000 },
             { id: 'airstrikeUp', name: '空袭强化', color: '#ff4444', symbol: '💣', step: 1 },
-            { id: 'empUp', name: '脉冲强化', color: '#aa00ff', symbol: '🌀', step: 10 }
+            { id: 'empUp', name: '脉冲强化', color: '#aa00ff', symbol: '🌀', step: 10 },
+            { id: 'shieldItem', name: '临时护盾', color: '#00ccff', symbol: '🛡', step: 1 }
         ];
         const TILE = { EMPTY: 0, SAND: 1, FOREST: 2, WATER: 3 };
         const TILE_COLORS = { 1: '#c2a84d', 2: '#1a4a1a', 3: '#1a5aaa' };
@@ -242,6 +243,7 @@
         let empActive = false, empEndTime = 0;
 
         let shieldUpgrade = 0, airstrikeUpgrade = 0, empUpgrade = 0;
+        let playerShieldHits = 0;
         const SHIELD_MAX = 5, AIRSTRIKE_MAX = 5, EMP_MAX = 5;
         let airstrikeEffect = null;
 
@@ -317,7 +319,7 @@
                 this.color = isPlayer ? '#ff0000' : (isBoss ? '#9900ff' : (typeData ? typeData.color : '#0066ff'));
                 this.direction = 'up';
                 this.speed = isPlayer ? s.playerSpeed : (isBoss ? s.enemySpeed * ENEMY_TYPES.scout.speedMult : (typeData ? s.enemySpeed * typeData.speedMult : s.enemySpeed));
-                this.baseHealth = isPlayer ? s.playerHP : (isBoss ? Math.floor(s.enemyHP * ENEMY_TYPES.heavy.hpMult * 2 * Math.pow(BOSS_SCALE_PER_LEVEL, level - 1)) : (typeData ? Math.ceil(s.enemyHP * typeData.hpMult) : s.enemyHP));
+                this.baseHealth = isPlayer ? s.playerHP : (isBoss ? Math.floor(s.enemyHP * ENEMY_TYPES.heavy.hpMult * 2 * Math.pow(BOSS_SCALE_PER_LEVEL, level - 1)) : (typeData ? Math.ceil((this.enemyType === 'normal' ? 1 : s.enemyHP) * typeData.hpMult + (this.enemyType === 'normal' ? Math.floor((level - 1) * 0.5) : 0)) : s.enemyHP));
                 this.health = this.baseHealth; this.maxHealth = this.health;
                 this.lastShot = 0;
                 this.shootCooldown = isPlayer ? s.playerCooldown : (isBoss ? Math.floor(s.enemyCooldown * 0.4) : (typeData ? Math.floor(s.enemyCooldown * typeData.shootMult) : s.enemyCooldown));
@@ -420,6 +422,13 @@
             }
             hit(dmg) {
                 if (this.invincible) return false;
+                if (this.isPlayer && playerShieldHits > 0) {
+                    playerShieldHits--;
+                    playSound('shield');
+                    showPowerupMessage(`🛡 护盾抵消! 剩余${playerShieldHits}层`);
+                    updatePowerupDisplay();
+                    return false;
+                }
                 this.health-=(dmg||1); playSound('hit');
                 if (this.health<=0) { this.alive=false; return true; }
                 if (this.isPlayer) {
@@ -428,6 +437,7 @@
                     this.bulletDamage=s.playerDamage;
                     activePowerups={}; multishotCount=0;
                     shieldUpgrade=0; airstrikeUpgrade=0; empUpgrade=0;
+                    playerShieldHits=0;
                     updatePowerupDisplay();
                 }
                 return false;
@@ -529,7 +539,7 @@
                     showPowerupMessage(`🔥 射速冷却 ${player.shootCooldown}ms`); break;
                 }
                 case 'heal': {
-                    const maxHp = player.maxHealth + 5;
+                    const maxHp = 10;
                     if (player.health >= maxHp) { showPowerupMessage('💚 血量已达到上限!'); break; }
                     player.health = Math.min(player.health + 2, maxHp);
                     showPowerupMessage(`💚 血量 ${player.health}/${maxHp}`); break;
@@ -560,6 +570,12 @@
                     empUpgrade++;
                     showPowerupMessage(`🌀 脉冲强化 Lv.${empUpgrade}`); break;
                 }
+                case 'shieldItem': {
+                    if (playerShieldHits >= 3) { showPowerupMessage('🛡 护盾层数已满!'); break; }
+                    playerShieldHits++;
+                    showPowerupMessage(`🛡 护盾 +1 层 (可抵消${playerShieldHits}次伤害)`);
+                    break;
+                }
             }
             updateUI();
             updatePowerupDisplay();
@@ -588,8 +604,9 @@
             const dmgBonus=player.bulletDamage-s.playerDamage;
             buffs.push({name:'💎 伤害',val:`+${dmgBonus}/${POWERUP_CAPS.damage}`,color:'#00aaff',maxed:player.bulletDamage>=s.playerDamage+POWERUP_CAPS.damage});
             buffs.push({name:'⭐ 散弹',val:`x${multishotCount+1}/${POWERUP_CAPS.multishot+1}`,color:'#ffdd00',maxed:multishotCount>=POWERUP_CAPS.multishot});
-            buffs.push({name:'❤️ 血量',val:`${player.health}/${player.maxHealth+5}`,color:'#00ff88',maxed:player.health>=player.maxHealth+5});
+            buffs.push({name:'❤️ 血量',val:`${player.health}/10`,color:'#00ff88',maxed:player.health>=10});
             buffs.push({name:'🛡️ 护盾',val:`Lv.${shieldUpgrade}/${SHIELD_MAX}`,color:'#00ffaa',maxed:shieldUpgrade>=SHIELD_MAX});
+            buffs.push({name:'🛡 抵消',val:`${playerShieldHits}/3`,color:'#00ccff',maxed:playerShieldHits>=3});
             buffs.push({name:'💣 空袭',val:`Lv.${airstrikeUpgrade}/${AIRSTRIKE_MAX}`,color:'#ff4444',maxed:airstrikeUpgrade>=AIRSTRIKE_MAX});
             buffs.push({name:'🌀 脉冲',val:`Lv.${empUpgrade}/${EMP_MAX}`,color:'#aa00ff',maxed:empUpgrade>=EMP_MAX});
             el.innerHTML=buffs.map(b=>`<div class="powerup-entry"><span class="pu-info" style="color:${b.color}">${b.name}</span><span class="pu-time" style="color:${b.maxed?'#ff4444':b.color}">${b.val}${b.maxed?' MAX':''}</span></div>`).join('');
@@ -627,10 +644,24 @@
                 case 'emp': {
                     empActive = true;
                     empEndTime = now + skill.duration;
+                    const s = getSettings();
                     const slowPercent = 0.5 + empUpgrade * 0.1;
-                    const slowSpeed = (s) => s * (1 - slowPercent);
-                    for (const e of enemies) { if (e.alive) { e.speed = slowSpeed(s.enemySpeed); e.slowed = true; e.slowEnd = empEndTime; } }
-                    if (boss && boss.alive) { boss.speed = slowSpeed(s.enemySpeed * ENEMY_TYPES.scout.speedMult); boss.slowed = true; boss.slowEnd = empEndTime; }
+                    for (const e of enemies) {
+                        if (e.alive) {
+                            const typeData = e.enemyType ? ENEMY_TYPES[e.enemyType] : null;
+                            const baseSpeed = typeData ? s.enemySpeed * typeData.speedMult : s.enemySpeed;
+                            const baseBulletSpeed = typeData ? Math.floor(s.enemyBulletSpeed * typeData.bulletSpeedMult) : s.enemyBulletSpeed;
+                            e.speed = baseSpeed * (1 - slowPercent);
+                            e.bulletSpeed = Math.max(1, Math.floor(baseBulletSpeed * (1 - slowPercent)));
+                            e.slowed = true;
+                            e.slowEnd = empEndTime;
+                        }
+                    }
+                    if (boss && boss.alive) {
+                        boss.speed = s.enemySpeed * ENEMY_TYPES.scout.speedMult * (1 - slowPercent);
+                        boss.bulletSpeed = Math.max(1, Math.floor(s.enemyBulletSpeed * ENEMY_TYPES.sniper.bulletSpeedMult * (1 - slowPercent)));
+                        boss.slowed = true; boss.slowEnd = empEndTime;
+                    }
                     showPowerupMessage(`⚡ 电磁脉冲! 减速${Math.floor(slowPercent*100)}%`); break;
                 }
                 case 'airstrike': {
@@ -668,8 +699,19 @@
             if (empActive && now > empEndTime) {
                 empActive = false;
                 const s = getSettings();
-                for (const e of enemies) { if (e.alive) { e.speed = s.enemySpeed; e.slowed = false; } }
-                if (boss && boss.alive) { boss.speed = s.enemySpeed * ENEMY_TYPES.scout.speedMult; boss.slowed = false; }
+                for (const e of enemies) {
+                    if (e.alive) {
+                        const typeData = e.enemyType ? ENEMY_TYPES[e.enemyType] : null;
+                        e.speed = typeData ? s.enemySpeed * typeData.speedMult : s.enemySpeed;
+                        e.bulletSpeed = typeData ? Math.floor(s.enemyBulletSpeed * typeData.bulletSpeedMult) : s.enemyBulletSpeed;
+                        e.slowed = false;
+                    }
+                }
+                if (boss && boss.alive) {
+                    boss.speed = s.enemySpeed * ENEMY_TYPES.scout.speedMult;
+                    boss.bulletSpeed = Math.floor(s.enemyBulletSpeed * ENEMY_TYPES.sniper.bulletSpeedMult);
+                    boss.slowed = false;
+                }
             }
             if (airstrikeEffect && now > airstrikeEffect.time + airstrikeEffect.duration) {
                 airstrikeEffect = null;
@@ -691,6 +733,23 @@
         function drawSkillEffects() {
             if (!player || !player.alive) return;
             const now = Date.now();
+            if (playerShieldHits > 0) {
+                const shieldPulse = Math.sin(now / 150) * 0.25 + 0.5;
+                ctx.strokeStyle = `rgba(0,204,255,${shieldPulse})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(player.x + player.width/2, player.y + player.height/2, player.width * 0.75, 0, Math.PI*2);
+                ctx.stroke();
+                ctx.fillStyle = `rgba(0,204,255,${shieldPulse * 0.15})`;
+                ctx.beginPath();
+                ctx.arc(player.x + player.width/2, player.y + player.height/2, player.width * 0.75, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = `rgba(255,255,255,${shieldPulse * 0.8})`;
+                ctx.font = `bold ${Math.floor(GRID_STEP * 0.25)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillText(`🛡x${playerShieldHits}`, player.x + player.width/2, player.y - 12);
+                ctx.textAlign = 'left';
+            }
             if (player.invincible && player.invincibleTimer > now) {
                 const remaining = player.invincibleTimer - now;
                 if (remaining > 2000) {
@@ -751,8 +810,6 @@
                     if (rc(br,walls[j])) { if(walls[j].type==='destructible'){walls[j].health--;if(walls[j].health<=0)walls.splice(j,1);} hit=true; break; }
                 }
                 if (hit) { bullets.splice(i,1); continue; }
-                const bTile = getTerrainAt(b.x, b.y);
-                if (bTile === TILE.WATER) { bullets.splice(i,1); continue; }
                 if (b.isPlayer) {
                     if (boss&&boss.alive&&rc(br,boss)) { if(boss.hit(b.damage)){score+=500;bossActive=false;playSound('bossDead');updateUI();} hit=true; }
                     if (!hit) { for (let j=enemies.length-1;j>=0;j--) { if(rc(br,enemies[j])){if(enemies[j].hit(b.damage)){enemies.splice(j,1);score+=100;playSound('enemyDead');updateUI();} hit=true;break;} } }
@@ -891,7 +948,10 @@
         }
         function spawnEnemies() {
             enemies=[];
-            const typePool = ['normal', 'normal', 'scout', 'heavy', 'sniper'];
+            const typePool = ['normal'];
+            if (level >= 2) typePool.push('scout', 'scout');
+            if (level >= 4) typePool.push('heavy');
+            if (level >= 6) typePool.push('sniper');
             for (let i=0;i<enemyCount;i++) {
                 let x,y,a=0;
                 const et = typePool[Math.floor(Math.random() * typePool.length)];
@@ -1038,6 +1098,7 @@
             score=0;level=1;gameRunning=true;gamePaused=false;activePowerups={};multishotCount=0;
             skillCooldowns=[0,0,0]; skillActive=[false,false,false]; empActive=false;
             shieldUpgrade=0; airstrikeUpgrade=0; empUpgrade=0; airstrikeEffect=null;
+            playerShieldHits=0;
             initGame();updateButtons();
         }
         function togglePause() { if(!gameRunning)return; gamePaused=!gamePaused; updateButtons(); }
@@ -1047,12 +1108,12 @@
             else if(gameRunning&&gamePaused){bs.disabled=false;bs.textContent='▶ 开始';bp.disabled=false;bp.textContent='▶ 继续';}
             else{bs.disabled=false;bs.textContent='▶ 开始';bp.disabled=true;bp.textContent='⏸ 暂停';}
         }
-        function restartGame() { document.getElementById('gameOver').style.display='none'; document.getElementById('skillBar').style.display='flex'; gameSettings=readSettings(); score=0;level=1;gameRunning=true;gamePaused=false;activePowerups={};multishotCount=0;shieldUpgrade=0;airstrikeUpgrade=0;empUpgrade=0;airstrikeEffect=null;skillCooldowns=[0,0,0];skillActive=[false,false,false];empActive=false;initGame();updateButtons(); }
+        function restartGame() { document.getElementById('gameOver').style.display='none'; document.getElementById('skillBar').style.display='flex'; gameSettings=readSettings(); score=0;level=1;gameRunning=true;gamePaused=false;activePowerups={};multishotCount=0;shieldUpgrade=0;airstrikeUpgrade=0;empUpgrade=0;airstrikeEffect=null;playerShieldHits=0;skillCooldowns=[0,0,0];skillActive=[false,false,false];empActive=false;initGame();updateButtons(); }
         function nextLevel() {
             document.getElementById('levelComplete').style.display='none';
             gameSettings=readSettings(); level++;enemyCount+=2;gameRunning=true;gamePaused=false;
-            const pu=activePowerups,ms=multishotCount,spd=player.speed,cd=player.shootCooldown,dmg=player.bulletDamage,hp=player.health;
-            initGame();activePowerups=pu;multishotCount=ms;player.speed=spd;player.shootCooldown=cd;player.bulletDamage=dmg;player.health=hp;
+            const pu=activePowerups,ms=multishotCount,spd=player.speed,cd=player.shootCooldown,dmg=player.bulletDamage,hp=player.health,psh=playerShieldHits;
+            initGame();activePowerups=pu;multishotCount=ms;player.speed=spd;player.shootCooldown=cd;player.bulletDamage=dmg;player.health=hp;playerShieldHits=psh;
             updatePowerupDisplay();updateButtons();
         }
         function gameOver() { gameRunning=false; document.getElementById('finalScore').textContent=score; document.getElementById('gameOver').style.display='flex'; document.getElementById('skillBar').style.display='none'; updateButtons(); }
