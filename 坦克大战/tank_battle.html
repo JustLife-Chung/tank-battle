@@ -312,7 +312,7 @@
                 this.x = x; this.y = y; this.isPlayer = isPlayer; this.isBoss = isBoss || false;
                 this.enemyType = (!isPlayer && !isBoss) ? (enemyType || 'normal') : null;
                 const typeData = this.enemyType ? ENEMY_TYPES[this.enemyType] : null;
-                this.width = isBoss ? TANK_SIZE * 1.8 : (typeData ? Math.floor(TANK_SIZE * typeData.sizeMult) : TANK_SIZE);
+                this.width = isBoss ? TANK_SIZE : (typeData ? Math.floor(TANK_SIZE * typeData.sizeMult) : TANK_SIZE);
                 this.height = this.width;
                 this.color = isPlayer ? '#ff0000' : (isBoss ? '#9900ff' : (typeData ? typeData.color : '#0066ff'));
                 this.direction = 'up';
@@ -354,15 +354,21 @@
                 ctx.fillRect(this.x, this.y, tw, this.height);
                 ctx.fillRect(this.x+this.width-tw, this.y, tw, this.height);
                 if (this.isBoss) {
-                    ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 2;
-                    ctx.strokeRect(this.x-4, this.y-4, this.width+8, this.height+8);
                     const g = Math.sin(Date.now()/200)*0.3+0.5;
-                    ctx.strokeStyle = `rgba(255,0,255,${g})`; ctx.lineWidth = 3;
-                    ctx.strokeRect(this.x-6, this.y-6, this.width+12, this.height+12);
+                    ctx.strokeStyle = `rgba(255,0,255,${g})`;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width * 0.75, 0, Math.PI*2);
+                    ctx.stroke();
+                    ctx.strokeStyle = `rgba(255,0,255,${g * 0.5})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width * 0.9, 0, Math.PI*2);
+                    ctx.stroke();
                 }
                 ctx.globalAlpha = 1;
                 if (!this.isPlayer) {
-                    const bh = this.isBoss ? 6 : 4, by = this.y - (this.isBoss ? 12 : 8);
+                    const bh = this.isBoss ? 5 : 4, by = this.y - (this.isBoss ? 8 : 8);
                     ctx.fillStyle = '#333'; ctx.fillRect(this.x, by, this.width, bh);
                     const r = this.health/this.maxHealth;
                     ctx.fillStyle = this.isBoss ? (r>0.3?'#ff00ff':'#ff0000') : '#00ff00';
@@ -429,8 +435,13 @@
         }
 
         function spawnBoss() {
-            const bs = Math.floor(TANK_SIZE * 1.8);
-            let sx = (CANVAS_W - bs) / 2, sy = 20;
+            const bs = TANK_SIZE;
+            let sx, sy, a = 0;
+            do {
+                sx = Math.random() * (CANVAS_W - bs);
+                sy = Math.random() * (CANVAS_H - bs);
+                a++;
+            } while (a < 100 && walls.some(w => rc({x: sx, y: sy, width: bs, height: bs}, w)));
             const clearRadius = bs + GRID_STEP;
             for (let i = walls.length - 1; i >= 0; i--) {
                 const w = walls[i];
