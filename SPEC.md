@@ -146,6 +146,7 @@ const dmg = 3 + Math.floor(level * 0.3) + airstrikeUpgrade;
 - 清除生成点周围半径 `bs + GRID_STEP` 内的障碍物
 - 智能寻路：卡住时尝试其他方向
 - 通过 `bossSpawning` 标志防止多次重复生成
+- **Boss关卡同时刷新与当前关卡相同数量和类型的敌人坦克**
 
 ---
 
@@ -196,9 +197,9 @@ const clearRadius = TANK_SIZE + GRID_STEP * 2;
 ```
 开始游戏 → 选择设置 → 生成玩家/敌人/障碍物 → 游戏循环
     ↓
-消灭所有敌人 → Boss警告(1.5秒) → Boss生成 → 消灭Boss → 过关
+消灭所有敌人 → Boss警告(1.5秒) → Boss生成 + 刷新相同数量敌人 → 消灭Boss和敌人 → 过关
     ↓
-下一关 → 敌人+2 → 继续游戏
+下一关 → 技能冷却刷新 → 敌人+2 → 继续游戏
     ↓
 玩家死亡 → 显示得分 → 重新开始
 ```
