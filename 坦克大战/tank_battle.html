@@ -1071,7 +1071,7 @@
             document.getElementById('bossWarningText').textContent=`关卡 ${level} Boss 出现!`;
             w.style.display='flex'; playSound('bossWarning');
             bossSpawning = true;
-            setTimeout(()=>{w.style.display='none';spawnBoss();updateUI();bossSpawning=false;},1500);
+            setTimeout(()=>{w.style.display='none';spawnBoss();spawnEnemies();updateUI();bossSpawning=false;},1500);
         }
         function initGame() {
             applyMapSettings();
@@ -1112,6 +1112,7 @@
         function nextLevel() {
             document.getElementById('levelComplete').style.display='none';
             gameSettings=readSettings(); level++;enemyCount+=2;gameRunning=true;gamePaused=false;
+            skillCooldowns=[0,0,0];skillActive=[false,false,false];empActive=false;
             const pu=activePowerups,ms=multishotCount,spd=player.speed,cd=player.shootCooldown,dmg=player.bulletDamage,hp=player.health,psh=playerShieldHits;
             initGame();activePowerups=pu;multishotCount=ms;player.speed=spd;player.shootCooldown=cd;player.bulletDamage=dmg;player.health=hp;playerShieldHits=psh;
             updatePowerupDisplay();updateButtons();
