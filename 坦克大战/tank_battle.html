@@ -856,7 +856,7 @@
             else if(gameRunning&&gamePaused){bs.disabled=false;bs.textContent='▶ 开始';bp.disabled=false;bp.textContent='▶ 继续';}
             else{bs.disabled=false;bs.textContent='▶ 开始';bp.disabled=true;bp.textContent='⏸ 暂停';}
         }
-        function restartGame() { document.getElementById('gameOver').style.display='none'; gameSettings=readSettings(); score=0;level=1;gameRunning=true;gamePaused=false;activePowerups={};multishotCount=0;shieldUpgrade=0;airstrikeUpgrade=0;empUpgrade=0;airstrikeEffect=null;initGame();updateButtons(); }
+        function restartGame() { document.getElementById('gameOver').style.display='none'; document.getElementById('skillBar').style.display='flex'; gameSettings=readSettings(); score=0;level=1;gameRunning=true;gamePaused=false;activePowerups={};multishotCount=0;shieldUpgrade=0;airstrikeUpgrade=0;empUpgrade=0;airstrikeEffect=null;skillCooldowns=[0,0,0];skillActive=[false,false,false];empActive=false;initGame();updateButtons(); }
         function nextLevel() {
             document.getElementById('levelComplete').style.display='none';
             gameSettings=readSettings(); level++;enemyCount+=2;gameRunning=true;gamePaused=false;
