@@ -134,11 +134,11 @@ const dmg = 3 + Math.floor(level * 0.3) + airstrikeUpgrade;
 
 ### 5.1 Boss属性
 - 体型：`TANK_SIZE × 1.8`
-- 速度：`enemySpeed × 1.5`
-- 血量：`15 × 1.6^(关卡-1)`
-- 伤害：`玩家伤害 × 2 × 1.3^(关卡-1)`
+- 速度：`enemySpeed × 2`（与侦察车一致），随关卡增加
+- 血量：`enemyHP × 6 × 1.6^(关卡-1)`（重型坦克血量的2倍，随关卡指数增长）
+- 伤害：`6 × 1.3^(关卡-1)`（与狙击手一致，随关卡增长）
 - 射击冷却：`enemyCooldown × 0.4`
-- 子弹速度：`enemyBulletSpeed × 1.8`
+- 子弹速度：`enemyBulletSpeed × 3`（与狙击手一致）
 
 ### 5.2 Boss生成
 - 位置：画布顶部居中

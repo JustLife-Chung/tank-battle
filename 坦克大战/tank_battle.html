@@ -316,13 +316,13 @@
                 this.height = this.width;
                 this.color = isPlayer ? '#ff0000' : (isBoss ? '#9900ff' : (typeData ? typeData.color : '#0066ff'));
                 this.direction = 'up';
-                this.speed = isPlayer ? s.playerSpeed : (isBoss ? s.enemySpeed * 1.5 : (typeData ? s.enemySpeed * typeData.speedMult : s.enemySpeed));
-                this.baseHealth = isPlayer ? s.playerHP : (isBoss ? Math.floor(BOSS_BASE_HP * Math.pow(BOSS_SCALE_PER_LEVEL, level - 1)) : (typeData ? Math.ceil(s.enemyHP * typeData.hpMult) : s.enemyHP));
+                this.speed = isPlayer ? s.playerSpeed : (isBoss ? s.enemySpeed * ENEMY_TYPES.scout.speedMult : (typeData ? s.enemySpeed * typeData.speedMult : s.enemySpeed));
+                this.baseHealth = isPlayer ? s.playerHP : (isBoss ? Math.floor(s.enemyHP * ENEMY_TYPES.heavy.hpMult * 2 * Math.pow(BOSS_SCALE_PER_LEVEL, level - 1)) : (typeData ? Math.ceil(s.enemyHP * typeData.hpMult) : s.enemyHP));
                 this.health = this.baseHealth; this.maxHealth = this.health;
                 this.lastShot = 0;
                 this.shootCooldown = isPlayer ? s.playerCooldown : (isBoss ? Math.floor(s.enemyCooldown * 0.4) : (typeData ? Math.floor(s.enemyCooldown * typeData.shootMult) : s.enemyCooldown));
-                this.bulletSpeed = isPlayer ? s.playerBulletSpeed : (isBoss ? Math.floor(s.enemyBulletSpeed * 1.8) : (typeData ? Math.floor(s.enemyBulletSpeed * typeData.bulletSpeedMult) : s.enemyBulletSpeed));
-                this.bulletDamage = isPlayer ? s.playerDamage : (isBoss ? Math.floor(s.playerDamage * 2 * Math.pow(BOSS_DMG_SCALE, level - 1)) : (typeData ? typeData.dmg : 1));
+                this.bulletSpeed = isPlayer ? s.playerBulletSpeed : (isBoss ? Math.floor(s.enemyBulletSpeed * ENEMY_TYPES.sniper.bulletSpeedMult) : (typeData ? Math.floor(s.enemyBulletSpeed * typeData.bulletSpeedMult) : s.enemyBulletSpeed));
+                this.bulletDamage = isPlayer ? s.playerDamage : (isBoss ? Math.floor(ENEMY_TYPES.sniper.dmg * Math.pow(BOSS_DMG_SCALE, level - 1)) : (typeData ? typeData.dmg : 1));
                 this.invincible = false; this.invincibleTimer = 0; this.alive = true;
                 this.sniperDist = 150 + Math.random() * 100;
             }
@@ -612,7 +612,7 @@
                     const slowPercent = 0.5 + empUpgrade * 0.1;
                     const slowSpeed = (s) => s * (1 - slowPercent);
                     for (const e of enemies) { if (e.alive) { e.speed = slowSpeed(s.enemySpeed); e.slowed = true; e.slowEnd = empEndTime; } }
-                    if (boss && boss.alive) { boss.speed = slowSpeed(s.enemySpeed * 1.5); boss.slowed = true; boss.slowEnd = empEndTime; }
+                    if (boss && boss.alive) { boss.speed = slowSpeed(s.enemySpeed * ENEMY_TYPES.scout.speedMult); boss.slowed = true; boss.slowEnd = empEndTime; }
                     showPowerupMessage(`⚡ 电磁脉冲! 减速${Math.floor(slowPercent*100)}%`); break;
                 }
                 case 'airstrike': {
@@ -651,7 +651,7 @@
                 empActive = false;
                 const s = getSettings();
                 for (const e of enemies) { if (e.alive) { e.speed = s.enemySpeed; e.slowed = false; } }
-                if (boss && boss.alive) { boss.speed = s.enemySpeed * 1.5; boss.slowed = false; }
+                if (boss && boss.alive) { boss.speed = s.enemySpeed * ENEMY_TYPES.scout.speedMult; boss.slowed = false; }
             }
             if (airstrikeEffect && now > airstrikeEffect.time + airstrikeEffect.duration) {
                 airstrikeEffect = null;
