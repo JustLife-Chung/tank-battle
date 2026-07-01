@@ -112,7 +112,7 @@
         <div class="setting-row"><label>障碍物密度</label><select id="obstacleDensity"><option value="sparse">稀疏</option><option value="normal" selected>适中</option><option value="dense">密集</option></select></div>
         <div class="setting-row"><label>地图大小</label><select id="mapSize"><option value="tiny">超小地图</option><option value="small">小地图</option><option value="medium" selected>中等</option><option value="large">大地图</option><option value="huge">超大地图</option></select></div>
         <h3>🎮 玩家设置</h3>
-        <div class="setting-row"><label>生命值</label><input type="number" id="playerHP" value="2" min="1" max="10"></div>
+            <div class="setting-row"><label>生命值</label><input type="number" id="playerHP" value="3" min="1" max="10"></div>
         <div class="setting-row"><label>移动速度</label><input type="number" id="playerSpeed" value="2.5" min="0.5" max="10" step="0.5"></div>
         <div class="setting-row"><label>射击冷却(ms)</label><input type="number" id="playerCooldown" value="600" min="100" max="3000" step="100"></div>
         <h3>🤖 敌人设置</h3>
@@ -167,7 +167,8 @@
         <div class="info-item">Boss: <span id="bossHP">-</span></div>
         <div class="controls"><h3>操作说明</h3><p>↑↓←→: 移动坦克</p><p>空格: 发射子弹</p><p>P: 暂停游戏</p></div>
         <div class="controls"><h3>主动技能</h3><p>Q: 护盾 (15s冷却)</p><p>E: 电磁脉冲 (20s冷却)</p><p>R: 空袭 (30s冷却)</p><p style="color:#00ff88;font-size:10px;">拾取道具可强化技能</p></div>
-        <div class="controls"><h3>游戏规则</h3><p>🔴 红色 = 玩家</p><p>🔵 蓝色 = 普通敌人</p><p>🟠 橙色 = 侦察车(快脆)</p><p>🟤 棕色 = 重型坦克(慢强)</p><p>🟢 绿色 = 狙击手(精准)</p><p>🟣 紫色 = Boss</p><p>⬛ 黑色 = 不可摧毁</p><p>🟩 绿色 = 可被摧毁</p></div>
+        <div class="controls"><h3>游戏规则</h3><p>🔴 红色 = 玩家</p><p>🔵 天蓝 = 普通坦克</p><p>🟡 金黄 = 侦察车(快脆)</p><p>🔴 深红 = 重型坦克(慢强)</p><p>🟢 亮绿 = 狙击手(精准远距)</p><p>🟣 紫色 = Boss</p><p>⬛ 黑色 = 不可摧毁</p><p>🟩 绿色 = 可被摧毁</p></div>
+        <div class="controls"><h3>🗺️ 地形效果</h3><p style="color:#c2a84d">🟫 沙地 = 减速50%</p><p style="color:#2d7a2d">🌲 森林 = 隐蔽效果</p><p style="color:#2080dd">🌊 水面 = 无法通行</p><p style="color:#888;font-size:10px">进入森林后敌人更难发现你</p></div>
         <div class="powerup-legend"><h3>🎁 道具效果</h3><p>⚡ 黄色 = 移速提升</p><p>🔥 橙色 = 射速提升</p><p>💚 绿色 = 血量恢复</p><p>💎 蓝色 = 伤害增强</p><p>⭐ 金色 = 散弹射击</p><p>🛡️ 青色 = 护盾强化</p><p>💣 红色 = 空袭强化</p><p>🌀 紫色 = 脉冲强化</p></div>
         <div class="active-powerups" id="activePowerupsSection"><h3>🎯 当前增益</h3><div id="activePowerupsList"><p class="no-powerup">暂无增益</p></div></div>
     </div>
@@ -207,15 +208,19 @@
             { id: 'airstrikeUp', name: '空袭强化', color: '#ff4444', symbol: '💣', step: 1 },
             { id: 'empUp', name: '脉冲强化', color: '#aa00ff', symbol: '🌀', step: 10 }
         ];
+        const TILE = { EMPTY: 0, SAND: 1, FOREST: 2, WATER: 3 };
+        const TILE_COLORS = { 1: '#c2a84d', 2: '#1a4a1a', 3: '#1a5aaa' };
+        const TILE_SPEED_MULT = { 1: 0.5, 2: 1.0, 3: 0 };
+        let terrainGrid = [];
         let TANK_SIZE = 36, WALL_SIZE = 36;
         const BOSS_BASE_HP = 15, BOSS_SCALE_PER_LEVEL = 1.6, BOSS_DMG_SCALE = 1.3;
         const MAP_SIZE_DIVISORS = { tiny: 6, small: 9, medium: 14, large: 20, huge: 28 };
 
         const ENEMY_TYPES = {
-            normal: { name: '普通坦克', color: '#0066ff', speedMult: 1, hpMult: 1, sizeMult: 1, shootMult: 1, bulletSpeedMult: 1, ai: 'normal' },
-            scout: { name: '侦察车', color: '#ffaa00', speedMult: 2, hpMult: 0.5, sizeMult: 0.7, shootMult: 0.8, bulletSpeedMult: 1.2, ai: 'aggressive' },
-            heavy: { name: '重型坦克', color: '#cc4400', speedMult: 0.5, hpMult: 3, sizeMult: 1.3, shootMult: 0.6, bulletSpeedMult: 0.8, ai: 'steady' },
-            sniper: { name: '狙击手', color: '#00cc88', speedMult: 0.8, hpMult: 2, sizeMult: 1, shootMult: 0.5, bulletSpeedMult: 2, ai: 'sniper' }
+            normal: { name: '普通坦克', color: '#00bbff', speedMult: 1, hpMult: 1, sizeMult: 1, shootMult: 1, bulletSpeedMult: 1, dmg: 1, ai: 'normal' },
+            scout: { name: '侦察车', color: '#ffdd00', speedMult: 2, hpMult: 0.5, sizeMult: 0.7, shootMult: 0.8, bulletSpeedMult: 1.2, dmg: 1, ai: 'aggressive' },
+            heavy: { name: '重型坦克', color: '#dd2244', speedMult: 0.5, hpMult: 3, sizeMult: 1.3, shootMult: 0.6, bulletSpeedMult: 0.8, dmg: 5, ai: 'steady' },
+            sniper: { name: '狙击手', color: '#44ff44', speedMult: 0.8, hpMult: 0.8, sizeMult: 1, shootMult: 1, bulletSpeedMult: 3, dmg: 6, ai: 'sniper' }
         };
 
         let CANVAS_W = 600, CANVAS_H = 600;
@@ -317,7 +322,7 @@
                 this.lastShot = 0;
                 this.shootCooldown = isPlayer ? s.playerCooldown : (isBoss ? Math.floor(s.enemyCooldown * 0.4) : (typeData ? Math.floor(s.enemyCooldown * typeData.shootMult) : s.enemyCooldown));
                 this.bulletSpeed = isPlayer ? s.playerBulletSpeed : (isBoss ? Math.floor(s.enemyBulletSpeed * 1.8) : (typeData ? Math.floor(s.enemyBulletSpeed * typeData.bulletSpeedMult) : s.enemyBulletSpeed));
-                this.bulletDamage = isPlayer ? s.playerDamage : (isBoss ? Math.floor(s.playerDamage * 2 * Math.pow(BOSS_DMG_SCALE, level - 1)) : 1);
+                this.bulletDamage = isPlayer ? s.playerDamage : (isBoss ? Math.floor(s.playerDamage * 2 * Math.pow(BOSS_DMG_SCALE, level - 1)) : (typeData ? typeData.dmg : 1));
                 this.invincible = false; this.invincibleTimer = 0; this.alive = true;
                 this.sniperDist = 150 + Math.random() * 100;
             }
@@ -371,8 +376,12 @@
             move(dir) {
                 if (!this.alive) return;
                 this.direction = dir;
+                const currentTile = getTerrainAt(this.x + this.width/2, this.y + this.height/2);
+                if (currentTile === TILE.WATER) return;
+                let effectiveSpeed = this.speed;
+                if (currentTile === TILE.SAND) effectiveSpeed *= TILE_SPEED_MULT[TILE.SAND];
                 let nx = this.x, ny = this.y;
-                switch(dir) { case 'up': ny-=this.speed; break; case 'down': ny+=this.speed; break; case 'left': nx-=this.speed; break; case 'right': nx+=this.speed; break; }
+                switch(dir) { case 'up': ny-=effectiveSpeed; break; case 'down': ny+=effectiveSpeed; break; case 'left': nx-=effectiveSpeed; break; case 'right': nx+=effectiveSpeed; break; }
                 if (nx<0||nx+this.width>CANVAS_W||ny<0||ny+this.height>CANVAS_H) return;
                 const tr = {x:nx,y:ny,width:this.width,height:this.height};
                 for (const w of walls) if (rc(tr,w)) return;
@@ -381,6 +390,8 @@
                     for (const e of enemies) if (e.alive&&rc(tr,e)) return;
                     if (boss&&boss.alive&&rc(tr,boss)) return;
                 } else if (rc(tr,player)) return;
+                const destTile = getTerrainAt(nx + this.width/2, ny + this.height/2);
+                if (destTile === TILE.WATER) return;
                 this.x=nx; this.y=ny;
             }
             shoot() {
@@ -568,6 +579,15 @@
         function drawPowerupEffects() {
             if (!player||!player.alive) return;
             const now=Date.now();
+            const pt = getTerrainAt(player.x + player.width/2, player.y + player.height/2);
+            if (pt === TILE.FOREST) {
+                ctx.globalAlpha = 0.25 + Math.sin(now / 400) * 0.1;
+                ctx.fillStyle = '#00ff44';
+                ctx.beginPath();
+                ctx.arc(player.x + player.width/2, player.y + player.height/2, player.width * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
             updatePowerupDisplay();
             if (powerupMsgTimer>now) { ctx.font=`bold ${Math.floor(GRID_STEP*0.33)}px Arial`; ctx.textAlign='center'; ctx.fillStyle='#ffdd00'; ctx.globalAlpha=Math.min(1,(powerupMsgTimer-now)/500); ctx.fillText(powerupMsgText,player.x+player.width/2,player.y-10); ctx.globalAlpha=1; ctx.textAlign='left'; }
         }
@@ -713,6 +733,8 @@
                     if (rc(br,walls[j])) { if(walls[j].type==='destructible'){walls[j].health--;if(walls[j].health<=0)walls.splice(j,1);} hit=true; break; }
                 }
                 if (hit) { bullets.splice(i,1); continue; }
+                const bTile = getTerrainAt(b.x, b.y);
+                if (bTile === TILE.WATER) { bullets.splice(i,1); continue; }
                 if (b.isPlayer) {
                     if (boss&&boss.alive&&rc(br,boss)) { if(boss.hit(b.damage)){score+=500;bossActive=false;playSound('bossDead');updateUI();} hit=true; }
                     if (!hit) { for (let j=enemies.length-1;j>=0;j--) { if(rc(br,enemies[j])){if(enemies[j].hit(b.damage)){enemies.splice(j,1);score+=100;playSound('enemyDead');updateUI();} hit=true;break;} } }
@@ -768,6 +790,87 @@
                 }
             }
         }
+        function createTerrain() {
+            terrainGrid = [];
+            const s = getSettings();
+            const cols = Math.floor(CANVAS_W / GRID_STEP);
+            const rows = Math.floor(CANVAS_H / GRID_STEP);
+            const safeRadius = GRID_STEP * 3;
+            const topSafeY = safeRadius;
+            const bottomSafeY = CANVAS_H - safeRadius;
+            const centerX = CANVAS_W / 2;
+            let sandChance, forestChance, waterChance;
+            switch (s.terrainType) {
+                case 'desert': sandChance = 0.30; forestChance = 0.03; waterChance = 0.06; break;
+                case 'forest': sandChance = 0.05; forestChance = 0.28; waterChance = 0.04; break;
+                case 'urban':  sandChance = 0.08; forestChance = 0.04; waterChance = 0.03; break;
+                default:       sandChance = 0.10; forestChance = 0.08; waterChance = 0.04; break;
+            }
+            for (let row = 0; row < rows; row++) {
+                terrainGrid[row] = [];
+                for (let col = 0; col < cols; col++) {
+                    const cx = col * GRID_STEP + GRID_STEP / 2;
+                    const cy = row * GRID_STEP + GRID_STEP / 2;
+                    if (cy < topSafeY && Math.abs(cx - centerX) < safeRadius) { terrainGrid[row][col] = TILE.EMPTY; continue; }
+                    if (cy > bottomSafeY && Math.abs(cx - centerX) < safeRadius) { terrainGrid[row][col] = TILE.EMPTY; continue; }
+                    if (walls.some(w => rc({ x: cx - WALL_SIZE/2, y: cy - WALL_SIZE/2, width: WALL_SIZE, height: WALL_SIZE }, w))) { terrainGrid[row][col] = TILE.EMPTY; continue; }
+                    if (player && rc({ x: player.x, y: player.y, width: player.width, height: player.height }, { x: cx - GRID_STEP/2, y: cy - GRID_STEP/2, width: GRID_STEP, height: GRID_STEP })) { terrainGrid[row][col] = TILE.EMPTY; continue; }
+                    const r = Math.random();
+                    if (r < sandChance) terrainGrid[row][col] = TILE.SAND;
+                    else if (r < sandChance + forestChance) terrainGrid[row][col] = TILE.FOREST;
+                    else if (r < sandChance + forestChance + waterChance) terrainGrid[row][col] = TILE.WATER;
+                    else terrainGrid[row][col] = TILE.EMPTY;
+                }
+            }
+        }
+        function drawTerrain() {
+            for (let row = 0; row < terrainGrid.length; row++) {
+                for (let col = 0; col < terrainGrid[row].length; col++) {
+                    const tile = terrainGrid[row][col];
+                    if (tile === TILE.EMPTY) continue;
+                    const x = col * GRID_STEP, y = row * GRID_STEP;
+                    ctx.globalAlpha = 0.55;
+                    ctx.fillStyle = TILE_COLORS[tile];
+                    ctx.fillRect(x, y, GRID_STEP, GRID_STEP);
+                    if (tile === TILE.FOREST) {
+                        ctx.fillStyle = '#0d3d0d';
+                        for (let k = 0; k < 5; k++) {
+                            const tx = x + ((k * 17 + row * 7) % (GRID_STEP - 8));
+                            const ty = y + ((k * 13 + col * 11) % (GRID_STEP - 8));
+                            ctx.beginPath();
+                            ctx.arc(tx + 4, ty + 4, 5 + (k % 3), 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    if (tile === TILE.WATER) {
+                        ctx.strokeStyle = 'rgba(100,180,255,0.4)';
+                        ctx.lineWidth = 1;
+                        for (let k = 0; k < 3; k++) {
+                            const wy = y + GRID_STEP * 0.25 + k * (GRID_STEP * 0.2);
+                            ctx.beginPath();
+                            ctx.moveTo(x + 4, wy);
+                            ctx.quadraticCurveTo(x + GRID_STEP / 2, wy - 4, x + GRID_STEP - 4, wy);
+                            ctx.stroke();
+                        }
+                    }
+                    if (tile === TILE.SAND) {
+                        ctx.fillStyle = 'rgba(180,160,80,0.3)';
+                        for (let k = 0; k < 6; k++) {
+                            const sx = x + ((k * 19 + col * 7) % (GRID_STEP - 4));
+                            const sy = y + ((k * 11 + row * 13) % (GRID_STEP - 4));
+                            ctx.fillRect(sx, sy, 2, 2);
+                        }
+                    }
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+        function getTerrainAt(x, y) {
+            const col = Math.floor(x / GRID_STEP);
+            const row = Math.floor(y / GRID_STEP);
+            if (row >= 0 && row < terrainGrid.length && col >= 0 && col < (terrainGrid[row] || []).length) return terrainGrid[row][col];
+            return TILE.EMPTY;
+        }
         function spawnEnemies() {
             enemies=[];
             const typePool = ['normal', 'normal', 'scout', 'heavy', 'sniper'];
@@ -780,36 +883,40 @@
             }
         }
         function enemyAI() {
+            const playerTile = getTerrainAt(player.x + player.width/2, player.y + player.height/2);
+            const playerHidden = playerTile === TILE.FOREST;
             for (const e of enemies) {
                 if (!e.alive) continue;
                 const dx=player.x-e.x, dy=player.y-e.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 const ai = e.enemyType ? ENEMY_TYPES[e.enemyType].ai : 'normal';
+                const shootMult = playerHidden ? 0.25 : 1;
+                const detectMult = playerHidden ? 0.35 : 1;
                 switch(ai) {
                     case 'aggressive':
-                        if (Math.random()<0.05) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
-                        if (Math.random()<0.04) e.shoot();
+                        if (Math.random()<0.05*detectMult) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+                        if (Math.random()<0.04*shootMult) e.shoot();
                         e.move(e.direction);
                         break;
                     case 'steady':
-                        if (Math.random()<0.02) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
-                        if (Math.random()<0.015) e.shoot();
+                        if (Math.random()<0.02*detectMult) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+                        if (Math.random()<0.015*shootMult) e.shoot();
                         e.move(e.direction);
                         break;
                     case 'sniper':
-                        if (dist < e.sniperDist) {
-                            if (Math.random()<0.05) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'left':'right'):(dy>0?'up':'down');
+                        if (dist < e.sniperDist * detectMult) {
+                            if (Math.random()<0.05*detectMult) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'left':'right'):(dy>0?'up':'down');
                             e.move(e.direction);
                         } else {
                             if (Math.random()<0.03) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
                             e.move(e.direction);
                         }
-                        if (Math.random()<0.025) e.shoot();
+                        if (Math.random()<0.025*shootMult) e.shoot();
                         break;
                     default:
                         if (Math.random()<0.015) { const d=['up','down','left','right']; e.direction=d[Math.floor(Math.random()*4)]; }
-                        if (Math.random()<0.008) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
-                        if (Math.random()<0.02) e.shoot();
+                        if (Math.random()<0.008*detectMult) e.direction = Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+                        if (Math.random()<0.02*shootMult) e.shoot();
                         e.move(e.direction);
                 }
             }
@@ -831,6 +938,7 @@
                     ctx.strokeStyle=terrain.grid; ctx.lineWidth=1;
                     for (let i=0;i<=CANVAS_W;i+=GRID_STEP){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,CANVAS_H);ctx.stroke();}
                     for (let i=0;i<=CANVAS_H;i+=GRID_STEP){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(CANVAS_W,i);ctx.stroke();}
+                    drawTerrain();
                     drawWalls(); drawPowerups(); drawBullets();
                     for (const e of enemies) e.draw(); if(boss&&boss.alive)boss.draw(); if(player.alive)player.draw();
             drawBossUI(); drawPowerupEffects(); drawSkillEffects();
@@ -845,6 +953,7 @@
             ctx.strokeStyle=terrain.grid; ctx.lineWidth=1;
             for (let i=0;i<=CANVAS_W;i+=GRID_STEP){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,CANVAS_H);ctx.stroke();}
             for (let i=0;i<=CANVAS_H;i+=GRID_STEP){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(CANVAS_W,i);ctx.stroke();}
+            drawTerrain();
             if (player.alive) {
                 if (keys['ArrowUp'])player.move('up'); if(keys['ArrowDown'])player.move('down');
                 if (keys['ArrowLeft'])player.move('left'); if(keys['ArrowRight'])player.move('right');
@@ -877,6 +986,7 @@
             }
             player=new Tank(px,py,true,false);
             bullets=[];powerups=[];boss=null;bossActive=false;lastPowerupSpawn=Date.now();
+            createTerrain();
             spawnEnemies(); updateUI();
         }
         function startGame() {
