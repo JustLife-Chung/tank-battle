@@ -420,7 +420,9 @@
                     this.invincible=true; this.invincibleTimer=Date.now()+2000;
                     const s=getSettings();
                     this.speed=s.playerSpeed; this.shootCooldown=s.playerCooldown;
-                    this.bulletDamage=s.playerDamage; activePowerups={}; multishotCount=0;
+                    this.bulletDamage=s.playerDamage;
+                    activePowerups={}; multishotCount=0;
+                    shieldUpgrade=0; airstrikeUpgrade=0; empUpgrade=0;
                     updatePowerupDisplay();
                 }
                 return false;
