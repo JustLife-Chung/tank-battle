@@ -878,7 +878,7 @@
                 let x,y,a=0;
                 const et = typePool[Math.floor(Math.random() * typePool.length)];
                 const ts = Math.floor(TANK_SIZE * ENEMY_TYPES[et].sizeMult);
-                do { x=Math.random()*(CANVAS_W-ts); y=Math.random()*(CANVAS_H*0.4); a++; } while(a<100&&(enemies.some(e=>rc({x,y,width:ts,height:ts},e))||walls.some(w=>rc({x,y,width:ts,height:ts},w))));
+                do { x=Math.random()*(CANVAS_W-ts); y=Math.random()*(CANVAS_H*0.4); a++; } while(a<100&&(enemies.some(e=>rc({x,y,width:ts,height:ts},e))||walls.some(w=>rc({x,y,width:ts,height:ts},w))||getTerrainAt(x+ts/2,y+ts/2)===TILE.WATER));
                 enemies.push(new Tank(x,y,false,false,et));
             }
         }
@@ -921,8 +921,13 @@
                         e.move(e.direction);
                 }
                 if (e.x === oldX && e.y === oldY) {
-                    const dirs = ['up','down','left','right'].filter(d => d !== e.direction);
-                    for (const d of dirs) { e.direction = d; e.move(d); if (e.x !== oldX || e.y !== oldY) break; }
+                    const eTile = getTerrainAt(e.x + e.width/2, e.y + e.height/2);
+                    if (eTile !== TILE.WATER) {
+                        const savedDir = e.direction;
+                        const dirs = ['up','down','left','right'].filter(d => d !== e.direction);
+                        for (const d of dirs) { e.direction = d; e.move(d); if (e.x !== oldX || e.y !== oldY) break; }
+                        if (e.x === oldX && e.y === oldY) e.direction = savedDir;
+                    }
                 }
             }
         }
