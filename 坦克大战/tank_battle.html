@@ -725,11 +725,17 @@
             walls=[]; const s=getSettings();
             const cols=Math.floor(CANVAS_W/GRID_STEP), rows=Math.floor(CANVAS_H/GRID_STEP);
             let density; switch(s.obstacleDensity){case 'sparse':density=0.1;break;case 'normal':density=0.2;break;case 'dense':density=0.32;break;default:density=0.2;}
+            const safeRadius = GRID_STEP * 3;
+            const topSafeY = safeRadius;
+            const bottomSafeY = CANVAS_H - safeRadius;
+            const centerX = CANVAS_W / 2;
             for (let row=0;row<rows;row++) {
                 for (let col=0;col<cols;col++) {
                     const cx=col*GRID_STEP+(GRID_STEP-WALL_SIZE)/2, cy=row*GRID_STEP+(GRID_STEP-WALL_SIZE)/2;
-                    if (cy+WALL_SIZE>CANVAS_H-50&&cx>(CANVAS_W/2-80)&&cx<(CANVAS_W/2+80)) continue;
-                    if (cy<70&&cx>(CANVAS_W/2-80)&&cx<(CANVAS_W/2+80)) continue;
+                    const wallCenterX = cx + WALL_SIZE / 2;
+                    const wallCenterY = cy + WALL_SIZE / 2;
+                    if (wallCenterY < topSafeY && Math.abs(wallCenterX - centerX) < safeRadius) continue;
+                    if (wallCenterY > bottomSafeY && Math.abs(wallCenterX - centerX) < safeRadius) continue;
                     if (Math.random()<density) {
                         let type; if(s.terrainType==='urban')type=Math.random()<0.6?'indestructible':'destructible'; else if(s.terrainType==='desert')type=Math.random()<0.3?'indestructible':'destructible'; else type=Math.random()<0.4?'indestructible':'destructible';
                         walls.push({x:cx,y:cy,width:WALL_SIZE,height:WALL_SIZE,type,health:type==='destructible'?s.wallHP:Infinity});
@@ -820,9 +826,17 @@
         }
         function initGame() {
             applyMapSettings();
-            player=new Tank((CANVAS_W-TANK_SIZE)/2,CANVAS_H-TANK_SIZE-10,true,false);
+            const px=(CANVAS_W-TANK_SIZE)/2, py=CANVAS_H-TANK_SIZE-10;
+            const clearRadius = TANK_SIZE + GRID_STEP * 2;
+            for (let i = walls.length - 1; i >= 0; i--) {
+                const w = walls[i];
+                if (rc({x: px - clearRadius, y: py - clearRadius, width: TANK_SIZE + clearRadius * 2, height: TANK_SIZE + clearRadius * 2}, w)) {
+                    walls.splice(i, 1);
+                }
+            }
+            player=new Tank(px,py,true,false);
             bullets=[];powerups=[];boss=null;bossActive=false;lastPowerupSpawn=Date.now();
-            createWalls(); spawnEnemies(); updateUI();
+            spawnEnemies(); updateUI();
         }
         function startGame() {
             gameSettings=readSettings(); enemyCount=parseInt(document.getElementById('enemyCountInput').value)||5;
