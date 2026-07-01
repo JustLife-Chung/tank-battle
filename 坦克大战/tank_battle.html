@@ -227,7 +227,7 @@
         let GRID_STEP = 42;
         let gameRunning = false, gamePaused = false, score = 0, level = 1, enemyCount = 5;
         let keys = {}, player, enemies = [], walls = [], bullets = [], powerups = [];
-        let boss = null, bossActive = false, permanentPowerups = {};
+        let boss = null, bossActive = false, bossSpawning = false, permanentPowerups = {};
         let soundEnabled = true, audioCtx = null, lastPowerupSpawn = 0, gameSettings = null;
         let multishotCount = 0;
         const POWERUP_CAPS = { speed: 3.0, firerate: 200, damage: 5, multishot: 5 };
@@ -992,14 +992,15 @@
             if(Date.now()-lastPowerupSpawn>5000&&Math.random()<0.005)spawnPowerup();
             for (const e of enemies) e.draw(); if(boss&&boss.alive)boss.draw(); if(player.alive)player.draw();
             drawBossUI(); drawPowerupEffects(); drawSkillEffects();
-            if(enemies.length===0&&!bossActive&&gameRunning){if(!boss)showBossWarning();else if(!boss.alive){playSound('victory');levelComplete();}}
+            if(enemies.length===0&&!bossActive&&!bossSpawning&&gameRunning){if(!boss)showBossWarning();else if(!boss.alive){playSound('victory');levelComplete();}}
         }
 
         function showBossWarning() {
             const w=document.getElementById('bossWarning');
             document.getElementById('bossWarningText').textContent=`关卡 ${level} Boss 出现!`;
             w.style.display='flex'; playSound('bossWarning');
-            setTimeout(()=>{w.style.display='none';spawnBoss();updateUI();},1500);
+            bossSpawning = true;
+            setTimeout(()=>{w.style.display='none';spawnBoss();updateUI();bossSpawning=false;},1500);
         }
         function initGame() {
             applyMapSettings();
