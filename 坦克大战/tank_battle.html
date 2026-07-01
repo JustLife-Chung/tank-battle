@@ -437,11 +437,17 @@
         function spawnBoss() {
             const bs = TANK_SIZE;
             let sx, sy, a = 0;
+            const tooClose = () => {
+                if (!player) return false;
+                const dcx = sx + bs/2 - (player.x + player.width/2);
+                const dcy = sy + bs/2 - (player.y + player.height/2);
+                return Math.sqrt(dcx*dcx + dcy*dcy) < GRID_STEP * 4;
+            };
             do {
                 sx = Math.random() * (CANVAS_W - bs);
                 sy = Math.random() * (CANVAS_H - bs);
                 a++;
-            } while (a < 100 && walls.some(w => rc({x: sx, y: sy, width: bs, height: bs}, w)));
+            } while (a < 100 && (walls.some(w => rc({x: sx, y: sy, width: bs, height: bs}, w)) || tooClose() || getTerrainAt(sx + bs/2, sy + bs/2) === TILE.WATER));
             const clearRadius = bs + GRID_STEP;
             for (let i = walls.length - 1; i >= 0; i--) {
                 const w = walls[i];
