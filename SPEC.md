@@ -1,0 +1,198 @@
+# 坦克大战游戏规格说明书
+
+## 项目概述
+
+基于 Canvas 的经典坦克大战网页游戏，单 HTML 文件架构，支持多种游戏机制和自定义设置。
+
+---
+
+## 1. 地图系统
+
+### 1.1 地图大小选项
+| 选项 | 除数 | 内容比例 | 说明 |
+|------|------|----------|------|
+| 超小地图 | 6 | 最大 | 网格最大，内容最大 |
+| 小地图 | 9 | 较大 | 网格较大，内容较大 |
+| 中等 | 14 | 默认 | 标准大小 |
+| 大地图 | 20 | 较小 | 网格较小，内容较小 |
+| 超大地图 | 28 | 最小 | 网格最小，内容最小 |
+
+### 1.2 内容缩放规则
+- 坦克大小：`GRID_STEP × 0.86`
+- 障碍物大小：`GRID_STEP × 0.86`
+- 炮弹大小：`GRID_STEP × 0.095`（普通）、`GRID_STEP × 0.14`（Boss）
+- 道具大小：`GRID_STEP × 0.57`
+- 画布大小不变，仅内容缩放
+
+---
+
+## 2. 敌人类型系统
+
+### 2.1 敌人属性表
+| 类型 | 颜色 | 速度倍率 | 血量倍率 | 体型倍率 | 射击倍率 | 子弹速度 | AI行为 |
+|------|------|----------|----------|----------|----------|----------|--------|
+| 普通坦克 | #0066ff | 1x | 1x | 1x | 1x | 1x | 随机+追踪 |
+| 侦察车 | #ffaa00 | 2x | 0.5x | 0.7x | 0.8x | 1.2x | 积极进攻 |
+| 重型坦克 | #cc4400 | 0.5x | 3x | 1.3x | 0.6x | 0.8x | 稳定追踪 |
+| 狙击手 | #00cc88 | 0.8x | 2x | 1x | 0.5x | 2x | 保持距离 |
+
+### 2.2 AI行为逻辑
+```
+普通坦克: 随机转向(1.5%) + 追踪玩家(0.8%) + 射击(2%)
+侦察车:   追踪玩家(5%) + 射击(4%)
+重型坦克: 追踪玩家(2%) + 射击(1.5%)
+狙击手:   距离<150时后退，否则前进 + 射击(2.5%)
+```
+
+### 2.3 生成规则
+- 敌人池：`['normal', 'normal', 'scout', 'heavy', 'sniper']`
+- 随机分配类型
+- 避开障碍物和已生成敌人
+
+---
+
+## 3. 主动技能系统
+
+### 3.1 技能定义
+| 技能 | 按键 | 基础冷却 | 基础效果 | 强化效果 |
+|------|------|----------|----------|----------|
+| 护盾 | Q | 15秒 | 无敌3秒 | 每级+1秒 |
+| 电磁脉冲 | E | 20秒 | 减速50%持续3秒 | 每级+10%减速 |
+| 空袭 | R | 30秒 | 范围伤害(3+关卡×0.3) | 每级+范围+伤害 |
+
+### 3.2 技能实现细节
+
+#### 护盾
+```javascript
+player.invincible = true;
+player.invincibleTimer = now + 3000 + shieldUpgrade * 1000;
+```
+
+#### 电磁脉冲
+```javascript
+const slowPercent = 0.5 + empUpgrade * 0.1; // 最高90%
+e.speed = e.speed * (1 - slowPercent);
+e.slowed = true;
+e.slowEnd = empEndTime;
+```
+- 视觉效果：紫色边框脉冲 + 敌人变色 + 血条紫色标记 + 屏幕紫色滤镜
+
+#### 空袭
+```javascript
+const radius = GRID_STEP * 3 + airstrikeUpgrade * GRID_STEP * 0.8;
+const dmg = 3 + Math.floor(level * 0.3) + airstrikeUpgrade;
+// 范围判定：距离² < 半径²
+```
+- 视觉效果：虚线圆圈扩大 → 爆炸闪烁 → 淡出
+
+---
+
+## 4. 技能强化道具
+
+### 4.1 道具定义
+| 道具ID | 名称 | 颜色 | 符号 | 效果 | 上限 |
+|--------|------|------|------|------|------|
+| shieldUp | 护盾强化 | #00ffaa | 🛡️ | 护盾持续时间+1秒 | 5级 |
+| airstrikeUp | 空袭强化 | #ff4444 | 💚 | 空袭范围和伤害增加 | 5级 |
+| empUp | 脉冲强化 | #aa00ff | 🌀 | 减速效果+10% | 5级(最高90%) |
+
+---
+
+## 5. Boss系统
+
+### 5.1 Boss属性
+- 体型：`TANK_SIZE × 1.8`
+- 速度：`enemySpeed × 1.5`
+- 血量：`15 × 1.6^(关卡-1)`
+- 伤害：`玩家伤害 × 2 × 1.3^(关卡-1)`
+- 射击冷却：`enemyCooldown × 0.4`
+- 子弹速度：`enemyBulletSpeed × 1.8`
+
+### 5.2 Boss生成
+- 位置：画布顶部居中
+- 清除生成点周围半径 `bs + GRID_STEP` 内的障碍物
+- 智能寻路：卡住时尝试其他方向
+
+---
+
+## 6. 玩家生成
+
+### 6.1 安全区规则
+```javascript
+// 生成障碍物时跳过安全区
+const safeRadius = GRID_STEP * 3;
+if (wallCenterY < topSafeY && Math.abs(wallCenterX - centerX) < safeRadius) continue;
+if (wallCenterY > bottomSafeY && Math.abs(wallCenterX - centerX) < safeRadius) continue;
+
+// 生成后清除玩家周围障碍物
+const clearRadius = TANK_SIZE + GRID_STEP * 2;
+// 删除与clearRadius范围重叠的障碍物
+```
+
+---
+
+## 7. 音效系统
+
+### 7.1 音效类型
+| 类型 | 波形 | 频率变化 | 时长 |
+|------|------|----------|------|
+| shoot | 默认 | 800→200 | 0.1s |
+| enemyDead | 默认 | 300→100 | 0.3s |
+| bossDead | sine | 500→120 | 0.8s |
+| powerup | sine | 600→900→1200 | 0.3s |
+| bossWarning | triangle | 80→120→80 | 1.0s |
+| victory | square | 523→659→784→1047 | 0.6s |
+| defeat | sawtooth | 400→80 | 0.5s |
+| hit | triangle | 600→100 | 0.08s |
+| shield | sine | 400→800 | 0.3s |
+| emp | sawtooth | 100→50 | 0.5s |
+| airstrike | square | 200→50 | 0.8s |
+
+---
+
+## 8. 游戏流程
+
+```
+开始游戏 → 选择设置 → 生成玩家/敌人/障碍物 → 游戏循环
+    ↓
+消灭所有敌人 → Boss警告(1.5秒) → Boss生成 → 消灭Boss → 过关
+    ↓
+下一关 → 敌人+2 → 继续游戏
+    ↓
+玩家死亡 → 显示得分 → 重新开始
+```
+
+---
+
+## 9. 代码架构
+
+### 9.1 核心常量
+```javascript
+TANK_SIZE, WALL_SIZE // 基础尺寸（动态计算）
+GRID_STEP // 网格步长（动态计算）
+CANVAS_W, CANVAS_H // 画布尺寸（动态计算）
+BOSS_BASE_HP = 15
+BOSS_SCALE_PER_LEVEL = 1.6
+BOSS_DMG_SCALE = 1.3
+MAP_SIZE_DIVISORS = { tiny: 6, small: 9, medium: 14, large: 20, huge: 28 }
+```
+
+### 9.2 状态变量
+```javascript
+gameRunning, gamePaused, score, level, enemyCount
+player, enemies[], walls[], bullets[], powerups[]
+boss, bossActive
+shieldUpgrade, airstrikeUpgrade, empUpgrade
+skillCooldowns[], empActive, empEndTime, airstrikeEffect
+```
+
+### 9.3 主要函数
+- `initGame()` - 初始化游戏
+- `gameLoop()` - 主循环(60fps)
+- `createWalls()` - 生成障碍物
+- `spawnEnemies()` - 生成敌人
+- `enemyAI()` - 敌人AI
+- `bossAI()` - Boss AI
+- `activateSkill()` - 技能激活
+- `updateSkills()` - 技能状态更新
+- `drawSkillEffects()` - 技能视觉效果
