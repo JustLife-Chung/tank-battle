@@ -988,6 +988,17 @@
                 if (keys[' '])player.shoot(); if(player.invincible&&Date.now()>player.invincibleTimer)player.invincible=false;
             }
             updatePowerupEffects(); updateSkills(); enemyAI(); if(bossActive)bossAI();
+            if (boss && boss.alive && player.alive && !player.invincible) {
+                const bcx = boss.x + boss.width/2, bcy = boss.y + boss.height/2;
+                const pcx = player.x + player.width/2, pcy = player.y + player.height/2;
+                const auraDist = boss.width * 0.75;
+                const dx = pcx - bcx, dy = pcy - bcy;
+                if (dx*dx + dy*dy < auraDist*auraDist) {
+                    player.hit(boss.bulletDamage);
+                    updateUI();
+                    if (!player.alive) { playSound('defeat'); gameOver(); }
+                }
+            }
             drawWalls(); drawPowerups(); checkPowerupCollision(); drawBullets();
             if(Date.now()-lastPowerupSpawn>5000&&Math.random()<0.005)spawnPowerup();
             for (const e of enemies) e.draw(); if(boss&&boss.alive)boss.draw(); if(player.alive)player.draw();
