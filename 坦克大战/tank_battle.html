@@ -417,7 +417,6 @@
                 this.health-=(dmg||1); playSound('hit');
                 if (this.health<=0) { this.alive=false; return true; }
                 if (this.isPlayer) {
-                    this.invincible=true; this.invincibleTimer=Date.now()+2000;
                     const s=getSettings();
                     this.speed=s.playerSpeed; this.shootCooldown=s.playerCooldown;
                     this.bulletDamage=s.playerDamage;
@@ -741,7 +740,7 @@
                     if (boss&&boss.alive&&rc(br,boss)) { if(boss.hit(b.damage)){score+=500;bossActive=false;playSound('bossDead');updateUI();} hit=true; }
                     if (!hit) { for (let j=enemies.length-1;j>=0;j--) { if(rc(br,enemies[j])){if(enemies[j].hit(b.damage)){enemies.splice(j,1);score+=100;playSound('enemyDead');updateUI();} hit=true;break;} } }
                 } else {
-                    if (rc(br,player)) { if(!player.invincible){player.hit(b.damage||1);updateUI();if(!player.alive){playSound('defeat');gameOver();}else{player.x=(CANVAS_W-TANK_SIZE)/2;player.y=CANVAS_H-TANK_SIZE-10;player.invincible=true;player.invincibleTimer=Date.now()+2000;}} hit=true; }
+                    if (rc(br,player)) { if(!player.invincible){player.hit(b.damage||1);updateUI();if(!player.alive){playSound('defeat');gameOver();}} hit=true; }
                 }
                 if (hit) { bullets.splice(i,1); continue; }
                 ctx.fillStyle=b.isPlayer?'#ff0000':'#0066ff'; ctx.beginPath(); ctx.arc(b.x,b.y,b.size,0,Math.PI*2); ctx.fill();
@@ -997,6 +996,7 @@
                 }
             }
             player=new Tank(px,py,true,false);
+            player.invincible=true; player.invincibleTimer=Date.now()+2000;
             bullets=[];powerups=[];boss=null;bossActive=false;lastPowerupSpawn=Date.now();
             createTerrain();
             spawnEnemies(); updateUI();
