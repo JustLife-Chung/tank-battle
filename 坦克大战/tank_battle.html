@@ -52,6 +52,19 @@
         .no-powerup { color: #aaa; font-size: 11px; }
         .start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: flex; justify-content: center; align-items: center; z-index: 100; flex-direction: column; }
         .start-screen h1 { color: #ff0000; font-size: 80px; text-shadow: 0 0 30px rgba(255, 0, 0, 0.6), 0 0 60px rgba(255, 0, 0, 0.3); margin-bottom: 10px; letter-spacing: 12px; }
+        .leaderboard { margin-top: 10px; max-height: 180px; overflow-y: auto; width: 100%; }
+        .leaderboard::-webkit-scrollbar { width: 6px; }
+        .leaderboard::-webkit-scrollbar-thumb { background: #0066ff; border-radius: 3px; }
+        .leaderboard table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .leaderboard th { color: #ffcc00; padding: 4px; border-bottom: 2px solid #0f3460; text-align: center; }
+        .leaderboard td { color: #fff; padding: 3px; text-align: center; border-bottom: 1px solid #0f3460; }
+        .leaderboard tr:nth-child(1) td { color: #ffcc00; font-weight: bold; }
+        .leaderboard tr:nth-child(1) td:nth-child(2) { font-size: 13px; }
+        .leaderboard tr:nth-child(2) td { color: #c0c0c0; }
+        .leaderboard tr:nth-child(3) td { color: #cd7f32; }
+        .high-score-display { color: #00ff88; font-size: 16px; margin: 8px 0; text-shadow: 0 0 15px rgba(0, 255, 136, 0.5); text-align: center; }
+        .leaderboard-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid #0f3460; }
+        .leaderboard-section h3 { color: #ffcc00; margin-bottom: 8px; font-size: 14px; }
         .start-screen p { color: #ccc; font-size: 20px; margin: 8px 0; }
         .start-screen .input-row { margin: 20px 0; }
         .start-screen .input-row label { color: #fff; font-size: 16px; }
@@ -160,17 +173,25 @@
 
     <div class="game-info" id="gameInfo">
         <h2>坦克大战</h2>
-        <div class="info-item">得分: <span id="score">0</span></div>
-        <div class="info-item">生命: <span id="lives">2</span></div>
-        <div class="info-item">关卡: <span id="level">1</span></div>
-        <div class="info-item">敌人: <span id="enemies">5</span></div>
-        <div class="info-item">Boss: <span id="bossHP">-</span></div>
+        <div class="leaderboard-section">
+            <h3>🏆 排行榜</h3>
+            <div class="high-score-display" id="highScoreDisplay">最高关卡: 无记录</div>
+            <div class="leaderboard" id="rightLeaderboard"></div>
+        </div>
         <div class="controls"><h3>操作说明</h3><p>↑↓←→: 移动坦克</p><p>空格: 发射子弹</p><p>P: 暂停游戏</p></div>
         <div class="controls"><h3>主动技能</h3><p>Q: 护盾 (15s冷却)</p><p>E: 电磁脉冲 (20s冷却)</p><p>R: 空袭 (30s冷却)</p><p style="color:#00ff88;font-size:10px;">拾取道具可强化技能</p></div>
         <div class="controls"><h3>游戏规则</h3><p>🔴 红色 = 玩家</p><p>🔵 天蓝 = 普通坦克</p><p>🟡 金黄 = 侦察车(快脆)</p><p>🔴 深红 = 重型坦克(慢强)</p><p>🟢 亮绿 = 狙击手(精准远距)</p><p>🟣 紫色 = Boss</p><p>⬛ 黑色 = 不可摧毁</p><p>🟩 绿色 = 可被摧毁</p></div>
         <div class="controls"><h3>🗺️ 地形效果</h3><p style="color:#c2a84d">🟫 沙地 = 减速50%</p><p style="color:#2d7a2d">🌲 森林 = 隐蔽效果</p><p style="color:#2080dd">🌊 水面 = 无法通行</p><p style="color:#888;font-size:10px">进入森林后敌人更难发现你</p></div>
         <div class="powerup-legend"><h3>🎁 道具效果</h3><p>⚡ 黄色 = 移速提升</p><p>🔥 橙色 = 射速提升</p><p>💚 绿色 = 血量恢复</p><p>💎 蓝色 = 伤害增强</p><p>⭐ 金色 = 散弹射击</p><p>🛡️ 青色 = 护盾强化</p><p>🛡 青蓝 = 临时护盾(抵消伤害)</p><p>💣 红色 = 空袭强化</p><p>🌀 紫色 = 脉冲强化</p></div>
         <div class="active-powerups" id="activePowerupsSection"><h3>🎯 当前增益</h3><div id="activePowerupsList"><p class="no-powerup">暂无增益</p></div></div>
+        <div class="controls" style="border-top: 2px solid #0f3460; margin-top: 10px; padding-top: 10px;">
+            <h3>📊 游戏状态</h3>
+            <div class="info-item">得分: <span id="score">0</span></div>
+            <div class="info-item">生命: <span id="lives">2</span></div>
+            <div class="info-item">关卡: <span id="level">1</span></div>
+            <div class="info-item">敌人: <span id="enemies">5</span></div>
+            <div class="info-item">Boss: <span id="bossHP">-</span></div>
+        </div>
     </div>
 
     <div class="start-screen" id="startScreen">
@@ -242,12 +263,71 @@
         let skillActive = [false, false, false];
         let empActive = false, empEndTime = 0;
 
+        const LEADERBOARD_KEY = 'tankBattleLeaderboard';
+        const MAX_LEADERBOARD_ENTRIES = 10;
+
         let shieldUpgrade = 0, airstrikeUpgrade = 0, empUpgrade = 0;
         let playerShieldHits = 0;
         const SHIELD_MAX = 5, AIRSTRIKE_MAX = 5, EMP_MAX = 5;
         let airstrikeEffect = null;
 
         function getAudioContext() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+
+        // 排行榜管理函数
+        function getLeaderboard() {
+            try {
+                const data = localStorage.getItem(LEADERBOARD_KEY);
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveToLeaderboard(score, level) {
+            const leaderboard = getLeaderboard();
+            const entry = {
+                score: score,
+                level: level,
+                date: new Date().toLocaleDateString('zh-CN'),
+                timestamp: Date.now()
+            };
+            leaderboard.push(entry);
+            leaderboard.sort((a, b) => b.level - a.level || b.score - a.score);
+            if (leaderboard.length > MAX_LEADERBOARD_ENTRIES) {
+                leaderboard.length = MAX_LEADERBOARD_ENTRIES;
+            }
+            localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
+            return leaderboard;
+        }
+
+        function getMaxLevel() {
+            const leaderboard = getLeaderboard();
+            return leaderboard.length > 0 ? leaderboard[0].level : 0;
+        }
+
+        function renderLeaderboard(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const leaderboard = getLeaderboard();
+            if (leaderboard.length === 0) {
+                container.innerHTML = '<p style="color:#aaa;font-size:12px;">暂无记录</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>#</th><th>关卡</th><th>分数</th><th>日期</th></tr></thead><tbody>';
+            leaderboard.forEach((entry, index) => {
+                html += `<tr><td>${index + 1}</td><td>${entry.level}</td><td>${entry.score}</td><td>${entry.date}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function updateHighScoreDisplay() {
+            const maxLevel = getMaxLevel();
+            const display = document.getElementById('highScoreDisplay');
+            if (display) {
+                display.textContent = `最高关卡: ${maxLevel > 0 ? '第' + maxLevel + '关' : '无记录'}`;
+            }
+        }
         function playSound(type) {
             if (!soundEnabled) return;
             try {
@@ -1108,7 +1188,11 @@
             else if(gameRunning&&gamePaused){bs.disabled=false;bs.textContent='▶ 开始';bp.disabled=false;bp.textContent='▶ 继续';}
             else{bs.disabled=false;bs.textContent='▶ 开始';bp.disabled=true;bp.textContent='⏸ 暂停';}
         }
-        function restartGame() { document.getElementById('gameOver').style.display='none'; document.getElementById('skillBar').style.display='flex'; gameSettings=readSettings(); score=0;level=1;gameRunning=true;gamePaused=false;activePowerups={};multishotCount=0;shieldUpgrade=0;airstrikeUpgrade=0;empUpgrade=0;airstrikeEffect=null;playerShieldHits=0;skillCooldowns=[0,0,0];skillActive=[false,false,false];empActive=false;initGame();updateButtons(); }
+        function restartGame() {
+            document.getElementById('gameOver').style.display='none';
+            document.getElementById('skillBar').style.display='flex';
+            gameSettings=readSettings(); score=0;level=1;gameRunning=true;gamePaused=false;activePowerups={};multishotCount=0;shieldUpgrade=0;airstrikeUpgrade=0;empUpgrade=0;airstrikeEffect=null;playerShieldHits=0;skillCooldowns=[0,0,0];skillActive=[false,false,false];empActive=false;initGame();updateButtons();
+        }
         function nextLevel() {
             document.getElementById('levelComplete').style.display='none';
             gameSettings=readSettings(); level++;enemyCount+=2;gameRunning=true;gamePaused=false;
@@ -1117,7 +1201,16 @@
             initGame();activePowerups=pu;multishotCount=ms;player.speed=spd;player.shootCooldown=cd;player.bulletDamage=dmg;player.health=hp;playerShieldHits=psh;
             updatePowerupDisplay();updateButtons();
         }
-        function gameOver() { gameRunning=false; document.getElementById('finalScore').textContent=score; document.getElementById('gameOver').style.display='flex'; document.getElementById('skillBar').style.display='none'; updateButtons(); }
+        function gameOver() {
+            gameRunning=false;
+            document.getElementById('finalScore').textContent=score;
+            saveToLeaderboard(score, level);
+            renderLeaderboard('rightLeaderboard');
+            updateHighScoreDisplay();
+            document.getElementById('gameOver').style.display='flex';
+            document.getElementById('skillBar').style.display='none';
+            updateButtons();
+        }
         function levelComplete() { gameRunning=false; document.getElementById('levelScore').textContent=score; document.getElementById('levelComplete').style.display='flex'; updateButtons(); }
 
         document.addEventListener('keydown', (e) => {
@@ -1132,6 +1225,8 @@
         window.addEventListener('resize', () => { applyMapSettings(); if(gameRunning)initGame(); });
 
         updateButtons();
+        updateHighScoreDisplay();
+        renderLeaderboard('rightLeaderboard');
         gameLoop();
     </script>
 </body>

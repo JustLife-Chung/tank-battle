@@ -229,6 +229,8 @@ terrainGrid[][] // 地形格子二维数组
 boss, bossActive, bossSpawning // bossSpawning防止多次生成
 shieldUpgrade, airstrikeUpgrade, empUpgrade
 skillCooldowns[], empActive, empEndTime, airstrikeEffect
+LEADERBOARD_KEY = 'tankBattleLeaderboard'
+MAX_LEADERBOARD_ENTRIES = 10
 ```
 
 ### 9.3 主要函数
@@ -244,3 +246,36 @@ skillCooldowns[], empActive, empEndTime, airstrikeEffect
 - `activateSkill()` - 技能激活
 - `updateSkills()` - 技能状态更新
 - `drawSkillEffects()` - 技能视觉效果
+
+---
+
+## 10. 排行榜系统
+
+### 10.1 数据结构
+```javascript
+const LEADERBOARD_KEY = 'tankBattleLeaderboard';
+const MAX_LEADERBOARD_ENTRIES = 10;
+
+// 排行榜条目
+{
+    score: number,      // 游戏得分
+    level: number,      // 挑战关卡
+    date: string,       // 日期（中文格式）
+    timestamp: number   // 时间戳
+}
+```
+
+### 10.2 排序规则
+- 主要排序：按关卡数从高到低 (`b.level - a.level`)
+- 次要排序：相同关卡按分数从高到低 (`b.score - a.score`)
+
+### 10.3 存储机制
+- 使用 `localStorage` 持久化存储
+- 存储键：`tankBattleLeaderboard`
+- 最大记录数：10条
+- 游戏结束时自动保存
+
+### 10.4 显示位置
+- 右侧信息栏最上方
+- 显示最高关卡数（绿色高亮）
+- 表格显示前10名记录（排名、关卡、分数、日期）
